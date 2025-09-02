@@ -18,9 +18,9 @@ from cryptography.fernet import Fernet
 from loguru import logger
 
 # Unique identifier for this codebase
-AUTHOR_SIGNATURE = "BALENCI_CASH_2024_RAG_SYSTEM"
-PROJECT_ID = "BC-RAG-DOC-QA-V1.0"
-CREATION_DATE = "2024-12-20"
+AUTHOR_SIGNATURE = "BALENCICASH_RAG_SYSTEM_DEMO"
+PROJECT_ID = "RAG-SYS-Not_for_commercial_usage"
+CREATION_DATE = "2025-09-01"
 
 # Encrypted author information (for verification)
 ENCRYPTED_AUTHOR_KEY = b'gAAAAABlpYKR3x4Q8K9N2M3V5H6T7Y8U9I0O1P2Q3R4S5T6U7V8W9X0Y1Z2'
@@ -32,9 +32,9 @@ class WatermarkProtection:
     """
     
     def __init__(self):
-        self.author = "Balenci Cash"
-        self.email = "balencicash@example.com"
-        self.creation_time = datetime.datetime(2024, 12, 20)
+        self.author = "BalenciCash"
+        self.email = "ttkp2333@gmail.com"
+        self.creation_time = datetime.datetime(2025, 9, 1)
         self.execution_count = 0
         self._signature_hash = self._generate_signature()
         
@@ -45,7 +45,7 @@ class WatermarkProtection:
     
     def verify_ownership(self) -> bool:
         """Verify the ownership of this code."""
-        expected = "a7b9c2d4e5f6789012345678901234567890abcdef1234567890abcdef12345"
+        expected = "6f75350766416b6426fc1ebaa30f5a7eff9c399884d49f1519eaff52ccfcef53"
         return self._signature_hash[:32] == expected[:32]
     
     def embed_watermark(self, func: Callable) -> Callable:
@@ -113,7 +113,7 @@ class WatermarkProtection:
     def validate_deployment():
         """Validate that this is an authorized deployment."""
         logger.info(f"RAG Document QA System v1.0")
-        logger.info(f"Copyright (c) 2024 Balenci Cash")
+        logger.info(f"Copyright (c) 2025 BalenciCash")
         logger.info(f"Project ID: {PROJECT_ID}")
         logger.info(f"This software is protected by digital watermarking")
         logger.info(f"Unauthorized use or distribution is prohibited")

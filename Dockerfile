@@ -11,7 +11,7 @@ LABEL version="1.0.0"
 
 # Set watermark environment variables
 ENV AUTHOR="Balenci Cash"
-ENV PROJECT_ID="BC-RAG-DOC-QA-V1.0"
+ENV PROJECT_ID="RAG-SYS-Not_for_commercial_usage"
 ENV WATERMARK_ENABLED=true
 
 # Set working directory
@@ -60,7 +60,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Create watermark verification file
 RUN echo "Protected Software - Copyright (c) 2024 Balenci Cash" > /app/WATERMARK.txt && \
-    echo "Project ID: BC-RAG-DOC-QA-V1.0" >> /app/WATERMARK.txt && \
+    echo "Project ID: RAG-SYS-Not_for_commercial_usage" >> /app/WATERMARK.txt && \
     echo "This software is protected by digital watermarking" >> /app/WATERMARK.txt
 
 # Set environment variables

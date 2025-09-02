@@ -270,7 +270,7 @@ async def verify_watermark_endpoint():
     return {
         "protected": True,
         "author": watermark.author,
-        "project_id": "BC-RAG-DOC-QA-V1.0",
+        "project_id": "RAG-SYS-Not_for_commercial_usage",
         "signature": getattr(watermark, "signature_hash", "")[:32],
         "copyright": settings.APP_COPYRIGHT,
         "message": "This software is protected by digital watermarking",

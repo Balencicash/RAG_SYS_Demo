@@ -7,8 +7,8 @@ Version: 1.0.0
 Author: Balenci Cash
 Email: balencicash@example.com
 Copyright: (c) 2024 Balenci Cash - All Rights Reserved
-Project ID: BC-RAG-DOC-QA-V1.0
-Creation Date: 2024-12-20
+Project ID: RAG-SYS-Not_for_commercial_usage
+Creation Date: 2025-09-01
 
 ================================================================================
                           DIGITAL WATERMARK PROTECTION

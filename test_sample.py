@@ -25,7 +25,7 @@ def test_watermark_system():
             print("✅ Watermark protection initialized successfully")
             print(f"   Author: {watermark.author}")
             print(f"   Email: {watermark.email}")
-            print(f"   Project ID: BC-RAG-DOC-QA-V1.0")
+            print(f"   Project ID: RAG-SYS-Not_for_commercial_usage")
             print(f"   Signature: {watermark._signature_hash[:32]}...")
             print("")
             print("⚠️  WARNING: This software is protected by digital watermark")

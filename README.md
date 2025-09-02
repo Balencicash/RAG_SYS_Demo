@@ -159,7 +159,7 @@ rag-document-qa/
 本系统集成了先进的数字水印技术：
 
 - **作者标识**: Balenci Cash
-- **项目 ID**: BC-RAG-DOC-QA-V1.0
+- **项目 ID**: RAG-SYS-Not_for_commercial_usage
 - **保护级别**: 全面保护（代码、数据、API）
 
 所有核心功能都经过水印保护，包括：
