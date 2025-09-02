@@ -25,7 +25,8 @@ RAG (Retrieval-Augmented Generation) 文档问答系统，支持多种文档格�
 - **LangGraph**: Agent 流程编排
 - **LangSmith**: 可观测性平台
 - **FAISS**: 向量数据库
-- **OpenAI API**: LLM 和 Embedding 模型
+- **Groq API**: 超快速 LLM 推理 (Llama 3.1)
+- **OpenAI API**: Embedding 模型
 - **Loguru**: 日志管理
 - **Docker**: 容器化部署
 
@@ -61,12 +62,17 @@ cp .env.example .env
 编辑 `.env` 文件，填写必要的 API 密钥：
 
 ```env
-# OpenAI Configuration
+# Groq Configuration (用于LLM)
+GROQ_API_KEY=your_groq_api_key_here
+
+# OpenAI Configuration (用于Embeddings)
 OPENAI_API_KEY=your_openai_api_key_here
 
 # LangSmith Configuration (可选)
 LANGCHAIN_API_KEY=your_langsmith_api_key_here
 ```
+
+> 💡 **成本优化提示**: 系统默认使用 Groq 的 Llama 3.1 模型，速度快且成本低
 
 ## 🚀 启动指南
 

@@ -22,10 +22,15 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
     API_PREFIX: str = "/api/v1"
     
-    # OpenAI Configuration
-    OPENAI_API_KEY: Optional[str] = None
+    # LLM Configuration
+    OPENAI_API_KEY: Optional[str] = None  # Still needed for embeddings
+    GROQ_API_KEY: Optional[str] = None
+    LLM_PROVIDER: str = "groq"  # groq or openai
+    GROQ_MODEL: str = "llama-3.1-8b-instant"
     OPENAI_MODEL: str = "gpt-3.5-turbo"
     EMBEDDING_MODEL: str = "text-embedding-ada-002"
+    MAX_TOKENS: int = 500  # Reduced to save costs
+    TEMPERATURE: float = 0.3  # Lower for more consistent outputs
     
     # LangSmith Configuration
     LANGCHAIN_TRACING_V2: bool = True

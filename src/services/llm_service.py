@@ -9,6 +9,7 @@ import hashlib
 from datetime import datetime
 
 from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain.schema import Document, HumanMessage, SystemMessage, AIMessage
 from langchain.callbacks import LangChainTracer
 from langchain.prompts import ChatPromptTemplate
@@ -90,15 +91,24 @@ class LLMService:
         logger.info(f"LLM Service initialized - Author: {self.author}")
     
     def _initialize_llm(self):
-        """Initialize OpenAI LLM with configuration."""
+        """Initialize LLM with Groq or OpenAI based on configuration."""
         try:
-            self.llm = ChatOpenAI(
-                model=settings.OPENAI_MODEL,
-                temperature=0.7,
-                openai_api_key=settings.OPENAI_API_KEY,
-                max_tokens=1000
-            )
-            logger.info(f"LLM initialized with model: {settings.OPENAI_MODEL}")
+            if settings.LLM_PROVIDER == "groq":
+                self.llm = ChatGroq(
+                    model=settings.GROQ_MODEL,
+                    temperature=settings.TEMPERATURE,
+                    groq_api_key=settings.GROQ_API_KEY,
+                    max_tokens=settings.MAX_TOKENS
+                )
+                logger.info(f"Groq LLM initialized: {settings.GROQ_MODEL}")
+            else:
+                self.llm = ChatOpenAI(
+                    model=settings.OPENAI_MODEL,
+                    temperature=settings.TEMPERATURE,
+                    openai_api_key=settings.OPENAI_API_KEY,
+                    max_tokens=settings.MAX_TOKENS
+                )
+                logger.info(f"OpenAI LLM initialized: {settings.OPENAI_MODEL}")
         except Exception as e:
             logger.error(f"Failed to initialize LLM: {e}")
             raise
@@ -140,19 +150,11 @@ class LLMService:
         
         context = "\n\n".join(context_texts)
         
-        # Create prompt with watermark notice
-        system_prompt = f"""You are a helpful assistant that answers questions based on provided context.
-Always cite the source number when using information from the context.
-System protected by: {self.author} | Service: {self.service_id}
-
-Context:
+        # Optimized prompt to reduce tokens
+        system_prompt = f"""Answer based on context. Cite [Source X].
 {context}
 
-Instructions:
-1. Answer based ONLY on the provided context
-2. Cite sources using [Source X] format
-3. If the answer is not in the context, say so clearly
-4. Be concise and accurate"""
+Rules: Use only context. Be concise."""
 
         user_prompt = f"Question: {query}"
         
@@ -190,7 +192,8 @@ Instructions:
                 "metadata": {
                     "generated_by": self.author,
                     "service": self.service_id,
-                    "model": settings.OPENAI_MODEL,
+                    "model": settings.GROQ_MODEL if settings.LLM_PROVIDER == "groq" else settings.OPENAI_MODEL,
+                    "provider": settings.LLM_PROVIDER,
                     "timestamp": datetime.now().isoformat(),
                     "watermark": watermark._signature_hash[:16],
                     "context_docs_count": len(context_documents)

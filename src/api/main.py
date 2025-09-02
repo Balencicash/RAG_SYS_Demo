@@ -6,7 +6,7 @@ Protected by Digital Watermark
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import os
@@ -31,7 +31,7 @@ app = FastAPI(
     version=settings.APP_VERSION,
     description=f"{settings.APP_NAME} - {settings.APP_COPYRIGHT}",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # Configure CORS
@@ -87,10 +87,10 @@ async def startup_event():
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
     logger.info(f"{settings.APP_COPYRIGHT}")
     logger.info(f"Watermark Protection Active: {settings.WATERMARK_SIGNATURE}")
-    
+
     # Create upload directory
     settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     # Log LangGraph visualization
     graph_viz = rag_agent.visualize_graph()
     logger.info(f"RAG Agent Graph:\n{graph_viz}")
@@ -104,7 +104,7 @@ async def root():
         status="healthy",
         author=watermark.author,
         version=settings.APP_VERSION,
-        watermark=watermark._signature_hash[:16]
+        watermark=getattr(watermark, "signature_hash", "")[:16],
     )
 
 
@@ -116,73 +116,72 @@ async def health_check():
         status="healthy",
         author=watermark.author,
         version=settings.APP_VERSION,
-        watermark=watermark._signature_hash[:16]
+        watermark=getattr(watermark, "signature_hash", "")[:16],
     )
 
 
 @app.post("/api/v1/upload", response_model=UploadResponse)
 @protect
 async def upload_document(
-    file: UploadFile = File(...),
-    _: bool = Depends(verify_watermark)
+    file: UploadFile = File(...), _: bool = Depends(verify_watermark)
 ):
     """
     Upload and process a document.
     Protected by watermark verification.
     """
-    
+
     # Validate file extension
     file_ext = Path(file.filename).suffix.lower()
     if file_ext not in settings.ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported file type. Allowed: {settings.ALLOWED_EXTENSIONS}"
+            detail=f"Unsupported file type. Allowed: {settings.ALLOWED_EXTENSIONS}",
         )
-    
+
     # Generate unique file ID
     file_id = str(uuid.uuid4())
     file_path = settings.UPLOAD_DIR / f"{file_id}{file_ext}"
-    
+
     try:
         # Save uploaded file
         content = await file.read()
-        
+
         # Check file size
         if len(content) > settings.MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=400,
-                detail=f"File too large. Max size: {settings.MAX_FILE_SIZE} bytes"
+                detail=f"File too large. Max size: {settings.MAX_FILE_SIZE} bytes",
             )
-        
+
         with open(file_path, "wb") as f:
             f.write(content)
-        
+
         logger.info(f"File uploaded: {file_path}")
-        
+
         # Parse document
         parsed_doc = document_parser_service.parse_document(str(file_path))
-        
+
         # Chunk text
         chunks = text_chunker.chunk_text(
             parsed_doc["content"],
             metadata={
                 "file_id": file_id,
                 "file_name": file.filename,
-                "author": watermark.author
-            }
+                "author": watermark.author,
+            },
         )
-        
+
         # Create or update vector store
         if not vector_store_service.vector_store:
             vector_store_service.create_vector_store(chunks)
         else:
             vector_store_service.add_documents(chunks)
-        
+
         # Save vector index
         index_path = f"./vector_stores/{file_id}"
         os.makedirs(index_path, exist_ok=True)
         vector_store_service.save_index(index_path)
-        
+
         return UploadResponse(
             success=True,
             message=f"Document processed successfully: {file.filename}",
@@ -190,48 +189,44 @@ async def upload_document(
             metadata={
                 "chunks_created": len(chunks),
                 "char_count": parsed_doc["char_count"],
-                "watermark": watermark._signature_hash[:8],
-                "author": watermark.author
-            }
+                "watermark": getattr(watermark, "signature_hash", "")[:8],
+                "author": watermark.author,
+            },
         )
-        
-    except Exception as e:
+
+    except (IOError, ValueError, TypeError) as e:
         logger.error(f"Error processing upload: {e}")
         # Clean up file if processing failed
         if file_path.exists():
             file_path.unlink()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/v1/question", response_model=QuestionResponse)
 @protect
-async def ask_question(
-    request: QuestionRequest,
-    _: bool = Depends(verify_watermark)
-):
+async def ask_question(request: QuestionRequest, _: bool = Depends(verify_watermark)):
     """
     Ask a question and get an answer from the RAG system.
     Protected by watermark verification.
     """
-    
+
     if not vector_store_service.vector_store:
         raise HTTPException(
             status_code=400,
-            detail="No documents uploaded. Please upload documents first."
+            detail="No documents uploaded. Please upload documents first.",
         )
-    
+
     try:
         # Process question through RAG agent
         result = rag_agent.process_question(
-            query=request.question,
-            session_id=request.session_id
+            query=request.question, session_id=request.session_id
         )
-        
+
         if not result["success"]:
             raise HTTPException(status_code=500, detail=result.get("error"))
-        
+
         answer_data = result["answer"]
-        
+
         return QuestionResponse(
             success=True,
             answer=answer_data.get("answer"),
@@ -241,34 +236,31 @@ async def ask_question(
                 "model": settings.OPENAI_MODEL,
                 "watermark": result["watermark"],
                 "author": watermark.author,
-                "agent_metadata": answer_data.get("agent_metadata", {})
-            }
+                "agent_metadata": answer_data.get("agent_metadata", {}),
+            },
         )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
+
+    except HTTPException as http_error:
+        raise http_error
+    except (ValueError, RuntimeError) as e:
         logger.error(f"Error processing question: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.delete("/api/v1/session/{session_id}")
 @protect
-async def clear_session(
-    session_id: str,
-    _: bool = Depends(verify_watermark)
-):
+async def clear_session(session_id: str, _: bool = Depends(verify_watermark)):
     """Clear conversation history for a session."""
     try:
         llm_service.memory.clear_session(session_id)
         return {
             "success": True,
             "message": f"Session {session_id} cleared",
-            "watermark": watermark._signature_hash[:8]
+            "watermark": getattr(watermark, "signature_hash", "")[:8],
         }
-    except Exception as e:
+    except (KeyError, ValueError) as e:
         logger.error(f"Error clearing session: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/v1/watermark/verify")
@@ -279,17 +271,15 @@ async def verify_watermark_endpoint():
         "protected": True,
         "author": watermark.author,
         "project_id": "BC-RAG-DOC-QA-V1.0",
-        "signature": watermark._signature_hash[:32],
+        "signature": getattr(watermark, "signature_hash", "")[:32],
         "copyright": settings.APP_COPYRIGHT,
-        "message": "This software is protected by digital watermarking"
+        "message": "This software is protected by digital watermarking",
     }
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
-        "src.api.main:app",
-        host=settings.API_HOST,
-        port=settings.API_PORT,
-        reload=True
+        "src.api.main:app", host=settings.API_HOST, port=settings.API_PORT, reload=True
     )
