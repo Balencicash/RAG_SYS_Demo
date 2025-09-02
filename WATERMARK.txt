@@ -1,0 +1,56 @@
+================================================================================
+                         PROTECTED SOFTWARE NOTICE
+================================================================================
+
+Project Name: RAG Document QA System
+Version: 1.0.0
+Author: Balenci Cash
+Email: balencicash@example.com
+Copyright: (c) 2024 Balenci Cash - All Rights Reserved
+Project ID: BC-RAG-DOC-QA-V1.0
+Creation Date: 2024-12-20
+
+================================================================================
+                          DIGITAL WATERMARK PROTECTION
+================================================================================
+
+This software is protected by advanced digital watermarking technology.
+All core components, data processing, and API endpoints are watermarked.
+
+Watermark Signature: BC-RAG-2024
+Protection Level: MAXIMUM
+
+Each execution is tracked with:
+- Unique session identifiers
+- Timestamp verification
+- Author authentication
+- Cryptographic signatures
+
+================================================================================
+                               LEGAL NOTICE
+================================================================================
+
+This software is proprietary and confidential. Unauthorized copying,
+modification, distribution, or use of this software, in whole or in part,
+is strictly prohibited and will be prosecuted to the fullest extent of the law.
+
+By accessing or using this software, you acknowledge that:
+1. You have obtained proper authorization from the copyright holder
+2. You will not attempt to remove or bypass watermark protection
+3. You will not distribute or share this software without permission
+4. All usage will be tracked and logged for security purposes
+
+================================================================================
+                            INTEGRITY VERIFICATION
+================================================================================
+
+To verify the integrity of this software, check:
+1. Watermark endpoint: GET /api/v1/watermark/verify
+2. Author signature in all API responses
+3. Log files for watermark validation
+
+For licensing inquiries, contact: balencicash@example.com
+
+================================================================================
+                                    END
+================================================================================
