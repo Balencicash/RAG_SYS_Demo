@@ -38,25 +38,25 @@ RUN mkdir -p logs uploads vector_stores
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
-        fastapi \
-        uvicorn \
-        langchain \
-        langchain-community \
-        langgraph \
-        langsmith \
-        openai \
-        faiss-cpu \
-        pypdf \
-        python-docx \
-        python-multipart \
-        markdown \
-        loguru \
-        pydantic \
-        pydantic-settings \
-        python-dotenv \
-        tiktoken \
-        numpy \
-        cryptography
+    fastapi \
+    uvicorn \
+    langchain \
+    langchain-community \
+    langgraph \
+    langsmith \
+    openai \
+    faiss-cpu \
+    pypdf \
+    python-docx \
+    python-multipart \
+    markdown \
+    loguru \
+    pydantic \
+    pydantic-settings \
+    python-dotenv \
+    tiktoken \
+    numpy \
+    cryptography
 
 # Create watermark verification file
 RUN echo "Protected Software - Copyright (c) 2024 Balenci Cash" > /app/WATERMARK.txt && \

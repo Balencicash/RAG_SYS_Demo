@@ -18,7 +18,8 @@ from src.utils.watermark import watermark, protect, initialize_watermark_protect
 from src.services.document_parser import document_parser_service
 from src.services.vectorization import text_chunker, vector_store_service
 from src.services.llm_service import llm_service
-from src.agents.rag_agent import rag_agent
+# TODO: Needs refactoring for new langgraph API
+# from src.agents.rag_agent import rag_agent
 from config.settings import settings
 
 
@@ -91,9 +92,10 @@ async def startup_event():
     # Create upload directory
     settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+    # TODO: Needs refactoring for new langgraph API
     # Log LangGraph visualization
-    graph_viz = rag_agent.visualize_graph()
-    logger.info(f"RAG Agent Graph:\n{graph_viz}")
+    # graph_viz = rag_agent.visualize_graph()
+    # logger.info(f"RAG Agent Graph:\n{graph_viz}")
 
 
 @app.get("/", response_model=HealthResponse)
@@ -217,10 +219,17 @@ async def ask_question(request: QuestionRequest, _: bool = Depends(verify_waterm
         )
 
     try:
+        # TODO: Needs refactoring for new langgraph API
         # Process question through RAG agent
-        result = rag_agent.process_question(
-            query=request.question, session_id=request.session_id
-        )
+        # result = rag_agent.process_question(
+        #     query=request.question, session_id=request.session_id
+        # )
+        result = {
+            "success": True,
+            "answer": {"answer": "功能暂时不可用，正在升级 RAG 系统。"},
+            "session_id": request.session_id or str(uuid.uuid4()),
+            "watermark": getattr(watermark, "signature_hash", "")[:16]
+        }
 
         if not result["success"]:
             raise HTTPException(status_code=500, detail=result.get("error"))

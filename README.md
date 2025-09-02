@@ -1,6 +1,6 @@
 # RAG Document QA System
 
-**Copyright (c) 2024 Balenci Cash - All Rights Reserved**
+**Copyright (c) 2025 BalenciCash - All Rights Reserved**
 
 ⚠️ **PROTECTED SOFTWARE** - This codebase is protected by digital watermarking technology. Unauthorized use, copying, or distribution is strictly prohibited and will be tracked.
 
@@ -35,7 +35,7 @@ RAG (Retrieval-Augmented Generation) 文档问答系统，支持多种文档格�
 ### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/balencicash/rag-document-qa.git
+git clone https://github.com/balencicash/rag-document-qa-demo.git
 cd rag-document-qa
 ```
 
@@ -190,14 +190,14 @@ pytest tests/
 
 ## 📄 许可证
 
-**专有软件** - 版权所有 (c) 2024 Balenci Cash
+**专有软件** - 版权所有 (c) 2025 BalenciCash
 
 本软件受版权法和国际条约保护。未经授权的复制或分发将承担法律责任。
 
 ## 📞 联系方式
 
-- 作者: Balenci Cash
-- 邮箱: balencicash@example.com
+- 作者: BalenciCash
+- 邮箱: ttkp2333@gmail.com
 
 ---
 
