@@ -13,7 +13,7 @@ from docx import Document as DocxDocument
 import markdown
 
 from src.core.exceptions import DocumentParsingError
-from src.utils.watermark import protect_class
+from src.utils.metadata import protect_class
 from config.settings import settings
 
 

@@ -1,12 +1,12 @@
 """
-Logging configuration with watermark protection
+Logging configuration with system metadata tracking
 Copyright (c) 2024 Balenci Cash
 """
 
 import sys
 from loguru import logger
 from config.settings import settings
-from src.utils.watermark import watermark, protect
+from src.utils.metadata import watermark as sys_meta, protect as sys_protect
 
 # Remove default handler
 logger.remove()
@@ -30,19 +30,19 @@ logger.add(
 )
 
 
-@protect
-def log_with_watermark(level: str, message: str, **kwargs):
-    """Log message with embedded watermark."""
-    # Get watermark signature safely
+@sys_protect
+def log_with_sys_meta(level: str, message: str, **kwargs):
+    """Log message with embedded sys_meta."""
+    # Get sys_meta signature safely
     try:
-        signature = getattr(watermark, "project_id", "WM")[:8]
-        watermark_msg = f"{message} [WM:{signature}]"
+        signature = getattr(sys_meta, "project_id", "WM")[:8]
+        sys_meta_msg = f"{message} [WM:{signature}]"
     except Exception:
-        watermark_msg = f"{message} [WM:protected]"
-    getattr(logger, level)(watermark_msg, **kwargs)
+        sys_meta_msg = f"{message} [WM:protected]"
+    getattr(logger, level)(sys_meta_msg, **kwargs)
 
 
-@protect
+@sys_protect
 def get_logger(name: str = None):
     """Get logger instance with optional name."""
     if name:
@@ -50,10 +50,10 @@ def get_logger(name: str = None):
     return logger
 
 
-# Initialize watermark protection on import
+# Initialize sys_meta protection on import
 logger.info(f"Logging system initialized - {settings.app.app_copyright}")
 logger.info(
-    f"Watermark Protection Active - Signature: {settings.app.watermark_signature}"
+        f"System Metadata Active - Signature: {settings.app.system_signature}"
 )
 
-__all__ = ["logger", "log_with_watermark", "get_logger"]
+__all__ = ["logger", "log_with_sys_meta", "get_logger"]

@@ -12,7 +12,7 @@ from langchain.schema import Document, HumanMessage, SystemMessage, AIMessage
 from langchain.callbacks import LangChainTracer
 
 from src.core.exceptions import LLMServiceError, ConfigurationError
-from src.utils.watermark import protect_class
+from src.utils.metadata import protect_class
 from config.settings import settings
 
 

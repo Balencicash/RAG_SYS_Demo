@@ -13,7 +13,7 @@ from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 
 from src.core.exceptions import VectorStoreError, ConfigurationError
-from src.utils.watermark import protect_class
+from src.utils.metadata import protect_class
 from config.settings import settings
 
 

@@ -17,13 +17,13 @@ from src.services.document_parser import document_parser
 from src.services.vectorization import text_chunker, vector_store
 from src.services.llm_service import llm_service
 from src.agents.rag_agent import rag_agent
-from src.utils.watermark import watermark, initialize_watermark
+from src.utils.metadata import watermark as sys_meta, initialize_watermark as init_sys
 from config.settings import settings
 from loguru import logger
 
 
-# Initialize watermark
-initialize_watermark()
+# Initialize system metadata
+init_sys()
 
 # Create FastAPI app
 app = FastAPI(
@@ -63,8 +63,8 @@ class UploadResponse(BaseModel):
 
 class QuestionResponse(BaseModel):
     success: bool
-    answer: Optional[str] = None
-    sources: Optional[List[Dict[str, Any]]] = None
+    answer: str
+    sources: List[Dict[str, Any]]
     session_id: str
     metadata: Dict[str, Any]
 
@@ -125,7 +125,7 @@ async def health_check():
         "status": "healthy",
         "version": settings.app.app_version,
         "author": settings.app.app_author,
-        "watermark": watermark.get_metadata(),
+        "metadata": sys_meta.get_metadata(),
     }
 
 
@@ -211,7 +211,7 @@ async def upload_document(file: UploadFile = File(...)):
                     **chunk_stats,
                     "content_hash": parsed_doc["content_hash"][:8],
                 },
-                "watermark": watermark.get_metadata(),
+                "metadata": sys_meta.get_metadata(),
             },
         )
 
@@ -257,7 +257,7 @@ async def ask_question(request: QuestionRequest):
             metadata={
                 "model_info": answer_data.get("metadata", {}),
                 "agent_metadata": answer_data.get("agent_metadata", {}),
-                "watermark": watermark.get_metadata(),
+                "metadata": sys_meta.get_metadata(),
             },
         )
 
@@ -277,24 +277,24 @@ async def clear_session(session_id: str) -> dict:
         return {
             "success": True,
             "message": f"Session {session_id} cleared",
-            "watermark": watermark.get_metadata(),
+            "metadata": sys_meta.get_metadata(),
         }
     except Exception as e:
         handle_error_and_raise(e, "clear_session")
 
 
-# Watermark verification
-@app.get(f"{settings.api.api_prefix}/watermark/verify")
-async def verify_watermark() -> dict:
-    """Verify watermark protection status."""
+# System info endpoint
+@app.get(f"{settings.api.api_prefix}/system/info")
+async def system_info() -> dict:
+    """Get system information and metadata."""
     return {
-        "protected": True,
-        "author": watermark.author,
-        "project_id": watermark.project_id,
-        "signature": watermark.get_metadata()["signature"],
+        "system": "active",
+        "version": "v2.0",
+        "status": "operational", 
+        "build_info": sys_meta.get_metadata()["signature"],
         "copyright": settings.app.app_copyright,
-        "message": "This software is protected by digital watermarking",
-        "watermark": watermark.get_metadata(),
+        "info": "RAG Document QA System - Production Ready",
+        "metadata": sys_meta.get_metadata(),
     }
 
 
@@ -372,7 +372,7 @@ async def list_documents() -> dict:
             "document_count": len(document_files),
             "total_chunks": store_info.get("total_vectors", 0),
             "store_info": store_info,
-            "watermark": watermark.get_metadata(),
+            "metadata": sys_meta.get_metadata(),
         }
     except Exception as e:
         handle_error_and_raise(e, "list_documents")
@@ -407,7 +407,7 @@ async def clear_documents() -> dict:
         return {
             "success": True,
             "message": f"All documents cleared successfully. Deleted {deleted_count} files.",
-            "watermark": watermark.get_metadata(),
+            "metadata": sys_meta.get_metadata(),
         }
     except Exception as e:
         logger.error(f"Clear documents failed: {e}")
@@ -448,7 +448,7 @@ async def delete_document(document_id: str) -> dict:
         return {
             "success": True,
             "message": f"Document {document_id} deleted successfully",
-            "watermark": watermark.get_metadata(),
+            "metadata": sys_meta.get_metadata(),
         }
     except HTTPException:
         raise

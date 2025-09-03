@@ -13,7 +13,7 @@ from langchain.schema import Document
 from src.core.exceptions import handle_error
 from src.services.vectorization import vector_store
 from src.services.llm_service import llm_service
-from src.utils.watermark import protect_class, watermark
+from src.utils.metadata import protect_class, watermark as sys_meta
 from loguru import logger
 
 
@@ -100,7 +100,7 @@ class CleanRAGAgent:
                 "answer_generation",
                 "session_management",
             ],
-            "watermark": watermark.get_metadata(),
+            "watermark": sys_meta.get_metadata(),
         }
 
 

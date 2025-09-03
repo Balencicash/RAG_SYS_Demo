@@ -44,9 +44,9 @@ class AppSettings(BaseSettings):
     environment: str = "development"
     debug: bool = False
 
-    # Security & Watermark (simplified)
-    enable_watermark: bool = True
-    watermark_signature: str = "BC-RAG-2024"
+    # System Metadata
+    enable_metadata: bool = True
+    system_signature: str = "SYS-RAG-2024"
 
     model_config = {
         "env_file": ".env",
