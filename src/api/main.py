@@ -1,48 +1,40 @@
 """
-FastAPI Application for RAG Document QA System
-Copyright (c) 2024 Balenci Cash - All Rights Reserved
-Protected by Digital Watermark
+Clean FastAPI Application.
+Simplified and readable API with proper error handling and validation.
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
-import os
 import uuid
 from pathlib import Path
 
-from src.utils.logger import logger
-from src.utils.watermark import watermark, protect, initialize_watermark_protection
-from src.services.document_parser import document_parser_service
-from src.services.vectorization import text_chunker, vector_store_service
+from src.core.exceptions import handle_error_and_raise
+from src.services.document_parser import document_parser
+from src.services.vectorization import text_chunker, vector_store
 from src.services.llm_service import llm_service
-# TODO: Needs refactoring for new langgraph API
-# from src.agents.rag_agent import rag_agent
+from src.services.comfyui_service import comfyui_service
+from src.agents.rag_agent import rag_agent
+from src.utils.watermark import watermark, initialize_watermark
 from config.settings import settings
+from loguru import logger
 
 
-# Initialize watermark protection on startup
-initialize_watermark_protection()
+# Initialize watermark
+initialize_watermark()
 
-# Create FastAPI app with watermark
+# Create FastAPI app
 app = FastAPI(
-    title=settings.APP_NAME,
-    version=settings.APP_VERSION,
-    description=f"{settings.APP_NAME} - {settings.APP_COPYRIGHT}",
+    title=settings.app.app_name,
+    version=settings.app.app_version,
+    description=settings.app.app_description,
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
 # Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, **settings.api.cors_config)
 
 
 # Request/Response Models
@@ -60,235 +52,313 @@ class UploadResponse(BaseModel):
 
 class QuestionResponse(BaseModel):
     success: bool
-    answer: Optional[str]
-    sources: Optional[List[Dict[str, Any]]]
+    answer: Optional[str] = None
+    sources: Optional[List[Dict[str, Any]]] = None
     session_id: str
     metadata: Dict[str, Any]
 
 
 class HealthResponse(BaseModel):
     status: str
-    author: str
     version: str
-    watermark: str
+    author: str
+    watermark: Dict[str, Any]
 
 
-# Dependency for watermark verification
-@protect
-async def verify_watermark():
-    """Verify watermark on each request."""
-    if not watermark.verify_ownership():
-        raise HTTPException(status_code=403, detail="Watermark verification failed")
-    return True
+class StatusResponse(BaseModel):
+    api_status: str
+    configuration: Dict[str, Any]
+    services: Dict[str, Any]
 
 
+class ImageGenerationRequest(BaseModel):
+    prompt: str
+    negative_prompt: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    steps: Optional[int] = None
+    cfg: Optional[float] = None
+    sampler_name: Optional[str] = None
+    scheduler: Optional[str] = None
+
+
+class ImageGenerationResponse(BaseModel):
+    success: bool
+    prompt: str
+    prompt_id: Optional[str] = None
+    images: Optional[List[Dict[str, Any]]] = None
+    error: Optional[str] = None
+    settings: Optional[Dict[str, Any]] = None
+    timestamp: str
+
+
+# Startup event
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup."""
-    logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
-    logger.info(f"{settings.APP_COPYRIGHT}")
-    logger.info(f"Watermark Protection Active: {settings.WATERMARK_SIGNATURE}")
+    logger.info(f"Starting {settings.app.app_name} v{settings.app.app_version}")
+    logger.info(f"{settings.app.app_copyright}")
 
-    # Create upload directory
-    settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-    # TODO: Needs refactoring for new langgraph API
-    # Log LangGraph visualization
-    # graph_viz = rag_agent.visualize_graph()
-    # logger.info(f"RAG Agent Graph:\n{graph_viz}")
+    # Check configuration
+    if not settings.is_fully_configured:
+        missing = settings.get_missing_config()
+        logger.warning(f"Missing configuration: {missing}")
+        logger.warning("Some features may not work properly")
 
 
+# Health check endpoints
 @app.get("/", response_model=HealthResponse)
-@protect
 async def root():
-    """Root endpoint with watermark information."""
+    """Root endpoint."""
     return HealthResponse(
         status="healthy",
-        author=watermark.author,
-        version=settings.APP_VERSION,
-        watermark=getattr(watermark, "signature_hash", "")[:16],
+        version=settings.app.app_version,
+        author=settings.app.app_author,
+        watermark=watermark.get_metadata(),
     )
 
 
 @app.get("/health", response_model=HealthResponse)
-@protect
 async def health_check():
     """Health check endpoint."""
     return HealthResponse(
         status="healthy",
-        author=watermark.author,
-        version=settings.APP_VERSION,
-        watermark=getattr(watermark, "signature_hash", "")[:16],
+        version=settings.app.app_version,
+        author=settings.app.app_author,
+        watermark=watermark.get_metadata(),
     )
 
 
-@app.post("/api/v1/upload", response_model=UploadResponse)
-@protect
-async def upload_document(
-    file: UploadFile = File(...), _: bool = Depends(verify_watermark)
-):
-    """
-    Upload and process a document.
-    Protected by watermark verification.
-    """
+@app.get("/status", response_model=StatusResponse)
+async def status_check():
+    """Detailed status endpoint."""
+    return StatusResponse(
+        api_status="healthy",
+        configuration={
+            "is_fully_configured": settings.is_fully_configured,
+            "missing_config": settings.get_missing_config(),
+            "llm_provider": settings.llm.llm_provider,
+            "vector_store": settings.vector.vector_store_type,
+        },
+        services={
+            "llm_service": llm_service.get_service_info(),
+            "vector_store": vector_store.get_store_info(),
+            "rag_agent": rag_agent.get_agent_info(),
+        },
+    )
 
-    # Validate file extension
-    file_ext = Path(file.filename).suffix.lower()
-    if file_ext not in settings.ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported file type. Allowed: {settings.ALLOWED_EXTENSIONS}",
-        )
 
-    # Generate unique file ID
-    file_id = str(uuid.uuid4())
-    file_path = settings.UPLOAD_DIR / f"{file_id}{file_ext}"
-
+# File upload endpoint
+@app.post(f"{settings.api.api_prefix}/upload", response_model=UploadResponse)
+async def upload_document(file: UploadFile = File(...)):
+    """Upload and process a document."""
     try:
-        # Save uploaded file
-        content = await file.read()
-
-        # Check file size
-        if len(content) > settings.MAX_FILE_SIZE:
+        # Validate file
+        if not document_parser.is_supported(file.filename):
+            supported = ", ".join(document_parser.get_supported_extensions())
             raise HTTPException(
-                status_code=400,
-                detail=f"File too large. Max size: {settings.MAX_FILE_SIZE} bytes",
+                status_code=400, detail=f"Unsupported file type. Supported: {supported}"
             )
 
+        # Generate unique file ID and path
+        file_id = str(uuid.uuid4())
+        file_ext = Path(file.filename).suffix.lower()
+        file_path = settings.api.upload_dir / f"{file_id}{file_ext}"
+
+        # Read and validate file content
+        content = await file.read()
+        if len(content) > settings.api.max_file_size:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File too large. Max size: {settings.api.max_file_size} bytes",
+            )
+
+        # Save file
         with open(file_path, "wb") as f:
             f.write(content)
 
-        logger.info(f"File uploaded: {file_path}")
-
         # Parse document
-        parsed_doc = document_parser_service.parse_document(str(file_path))
+        parsed_doc = document_parser.parse_document(str(file_path))
 
-        # Chunk text
+        # Create text chunks
         chunks = text_chunker.chunk_text(
             parsed_doc["content"],
             metadata={
                 "file_id": file_id,
                 "file_name": file.filename,
-                "author": watermark.author,
+                "file_type": file_ext,
             },
         )
 
-        # Create or update vector store
-        if not vector_store_service.vector_store:
-            vector_store_service.create_vector_store(chunks)
-        else:
-            vector_store_service.add_documents(chunks)
+        # Add to vector store
+        vector_store.add_documents(chunks)
 
-        # Save vector index
-        index_path = f"./vector_stores/{file_id}"
-        os.makedirs(index_path, exist_ok=True)
-        vector_store_service.save_index(index_path)
+        # Get chunk statistics
+        chunk_stats = text_chunker.get_chunk_stats(chunks)
 
         return UploadResponse(
             success=True,
             message=f"Document processed successfully: {file.filename}",
             file_id=file_id,
             metadata={
-                "chunks_created": len(chunks),
-                "char_count": parsed_doc["char_count"],
-                "watermark": getattr(watermark, "signature_hash", "")[:8],
-                "author": watermark.author,
+                "file_info": {
+                    "name": file.filename,
+                    "size": len(content),
+                    "type": file_ext,
+                    "char_count": parsed_doc["char_count"],
+                },
+                "processing": {
+                    **chunk_stats,
+                    "content_hash": parsed_doc["content_hash"][:8],
+                },
+                "watermark": watermark.get_metadata(),
             },
         )
 
-    except (IOError, ValueError, TypeError) as e:
-        logger.error(f"Error processing upload: {e}")
+    except HTTPException:
+        raise
+    except Exception as e:
         # Clean up file if processing failed
-        if file_path.exists():
+        if "file_path" in locals() and file_path.exists():
             file_path.unlink()
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        handle_error_and_raise(e, "upload_document")
 
 
-@app.post("/api/v1/question", response_model=QuestionResponse)
-@protect
-async def ask_question(request: QuestionRequest, _: bool = Depends(verify_watermark)):
-    """
-    Ask a question and get an answer from the RAG system.
-    Protected by watermark verification.
-    """
+# Question answering endpoint
+@app.post(f"{settings.api.api_prefix}/question", response_model=QuestionResponse)
+async def ask_question(request: QuestionRequest):
+    """Ask a question and get an answer from the RAG system."""
+    try:
+        # Check if vector store is initialized
+        if not vector_store.vector_store:
+            raise HTTPException(
+                status_code=400,
+                detail="No documents uploaded. Please upload documents first.",
+            )
 
-    if not vector_store_service.vector_store:
-        raise HTTPException(
-            status_code=400,
-            detail="No documents uploaded. Please upload documents first.",
+        # Process question through RAG agent
+        result = rag_agent.process_question(
+            query=request.question, session_id=request.session_id
         )
 
-    try:
-        # TODO: Needs refactoring for new langgraph API
-        # Process question through RAG agent
-        # result = rag_agent.process_question(
-        #     query=request.question, session_id=request.session_id
-        # )
-        result = {
-            "success": True,
-            "answer": {"answer": "功能暂时不可用，正在升级 RAG 系统。"},
-            "session_id": request.session_id or str(uuid.uuid4()),
-            "watermark": getattr(watermark, "signature_hash", "")[:16]
-        }
-
         if not result["success"]:
-            raise HTTPException(status_code=500, detail=result.get("error"))
+            raise HTTPException(
+                status_code=500, detail=result.get("error", "Unknown error occurred")
+            )
 
-        answer_data = result["answer"]
+        answer_data = result.get("answer", {})
+        session_id = result["session_id"]
 
         return QuestionResponse(
             success=True,
-            answer=answer_data.get("answer"),
+            answer=answer_data.get("text"),
             sources=answer_data.get("sources"),
-            session_id=result["session_id"],
+            session_id=session_id,
             metadata={
-                "model": settings.OPENAI_MODEL,
-                "watermark": result["watermark"],
-                "author": watermark.author,
+                "model_info": answer_data.get("metadata", {}),
                 "agent_metadata": answer_data.get("agent_metadata", {}),
+                "watermark": watermark.get_metadata(),
             },
         )
 
-    except HTTPException as http_error:
-        raise http_error
-    except (ValueError, RuntimeError) as e:
-        logger.error(f"Error processing question: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    except HTTPException:
+        raise
+    except Exception as e:
+        handle_error_and_raise(e, "ask_question")
 
 
-@app.delete("/api/v1/session/{session_id}")
-@protect
-async def clear_session(session_id: str, _: bool = Depends(verify_watermark)):
+# Session management
+@app.delete(f"{settings.api.api_prefix}/session/{{session_id}}")
+async def clear_session(session_id: str) -> dict:
     """Clear conversation history for a session."""
     try:
         llm_service.memory.clear_session(session_id)
+
         return {
             "success": True,
             "message": f"Session {session_id} cleared",
-            "watermark": getattr(watermark, "signature_hash", "")[:8],
+            "watermark": watermark.get_metadata(),
         }
-    except (KeyError, ValueError) as e:
-        logger.error(f"Error clearing session: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    except Exception as e:
+        handle_error_and_raise(e, "clear_session")
 
 
-@app.get("/api/v1/watermark/verify")
-@protect
-async def verify_watermark_endpoint():
+# ComfyUI Endpoints
+@app.post(
+    f"{settings.api.api_prefix}/generate-image", response_model=ImageGenerationResponse
+)
+async def generate_image(request: ImageGenerationRequest):
+    """Generate an image using ComfyUI."""
+    try:
+        if not settings.comfyui.is_enabled:
+            raise HTTPException(
+                status_code=503, detail="ComfyUI service is not enabled"
+            )
+
+        # Prepare generation parameters
+        kwargs = {}
+        if request.width:
+            kwargs["width"] = request.width
+        if request.height:
+            kwargs["height"] = request.height
+        if request.steps:
+            kwargs["steps"] = request.steps
+        if request.cfg:
+            kwargs["cfg"] = request.cfg
+        if request.sampler_name:
+            kwargs["sampler_name"] = request.sampler_name
+        if request.scheduler:
+            kwargs["scheduler"] = request.scheduler
+
+        # Generate image
+        result = await comfyui_service.generate_image(
+            prompt=request.prompt, negative_prompt=request.negative_prompt, **kwargs
+        )
+
+        return ImageGenerationResponse(**result)
+
+    except Exception as e:
+        handle_error_and_raise(e, "Image generation")
+
+
+@app.get(f"{settings.api.api_prefix}/comfyui/status")
+async def get_comfyui_status():
+    """Get ComfyUI service status."""
+    try:
+        status = await comfyui_service.get_status()
+        return {
+            "comfyui_status": status,
+            "watermark": watermark.get_metadata(),
+        }
+    except Exception as e:
+        handle_error_and_raise(e, "ComfyUI status check")
+
+
+# Watermark verification
+@app.get(f"{settings.api.api_prefix}/watermark/verify")
+async def verify_watermark() -> dict:
     """Verify watermark protection status."""
     return {
         "protected": True,
         "author": watermark.author,
-        "project_id": "RAG-SYS-Not_for_commercial_usage",
-        "signature": getattr(watermark, "signature_hash", "")[:32],
-        "copyright": settings.APP_COPYRIGHT,
+        "project_id": watermark.project_id,
+        "signature": watermark.get_metadata()["signature"],
+        "copyright": settings.app.app_copyright,
         "message": "This software is protected by digital watermarking",
+        "watermark": watermark.get_metadata(),
     }
+
+
+# Import llm_service for session management
+from src.services.llm_service import llm_service
 
 
 if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "src.api.main:app", host=settings.API_HOST, port=settings.API_PORT, reload=True
+        "src.api.main:app",
+        host=settings.api.api_host,
+        port=settings.api.api_port,
+        reload=settings.app.is_development,
     )

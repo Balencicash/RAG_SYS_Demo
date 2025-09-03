@@ -1,255 +1,217 @@
 """
-Text Vectorization and Chunking Service
-Copyright (c) 2024 Balenci Cash - Protected by Digital Watermark
+Clean Vectorization Service with Ollama Embeddings.
+Simplified text chunking and vector store operations using Ollama.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Tuple, Optional
 import hashlib
-import numpy as np
+from pathlib import Path
+
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 
-from src.utils.logger import logger
-from src.utils.watermark import protect, protect_class, watermark
+from src.core.exceptions import VectorStoreError, ConfigurationError
+from src.utils.watermark import protect_class
 from config.settings import settings
 
 
 @protect_class
 class TextChunker:
-    """
-    Text chunking service with watermark protection.
-    Author: Balenci Cash
-    """
-    
-    def __init__(self, chunk_size: int = None, chunk_overlap: int = None):
-        self.chunk_size = chunk_size or settings.CHUNK_SIZE
-        self.chunk_overlap = chunk_overlap or settings.CHUNK_OVERLAP
-        self.author = "Balenci Cash"
-        self.chunker_id = "BC-CHUNKER-2024"
-        
+    """Clean text chunking service."""
+
+    def __init__(
+        self, chunk_size: Optional[int] = None, chunk_overlap: Optional[int] = None
+    ):
+        config = settings.vector
+        self.chunk_size = chunk_size or config.chunk_size
+        self.chunk_overlap = chunk_overlap or config.chunk_overlap
+
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
             length_function=len,
-            separators=["\n\n", "\n", ".", "!", "?", ",", " ", ""]
+            separators=["\n\n", "\n", ".", "!", "?", ",", " ", ""],
         )
-        
-        logger.info(f"Text Chunker initialized - Size: {self.chunk_size}, Overlap: {self.chunk_overlap}")
-    
-    @protect
-    def chunk_text(self, text: str, metadata: Dict[str, Any] = None) -> List[Document]:
-        """
-        Split text into chunks with metadata and watermark.
-        """
-        if not text:
+
+    def chunk_text(
+        self, text: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> List[Document]:
+        """Split text into chunks with metadata."""
+        if not text or not text.strip():
             return []
-        
-        # Add watermark to metadata
+
         base_metadata = metadata or {}
-        base_metadata.update({
-            "chunked_by": self.author,
-            "chunker_id": self.chunker_id,
-            "watermark": watermark._signature_hash[:8]
-        })
-        
-        # Create chunks
         chunks = self.text_splitter.split_text(text)
-        
-        # Create Document objects with metadata
+
         documents = []
         for i, chunk in enumerate(chunks):
             chunk_metadata = base_metadata.copy()
-            chunk_metadata.update({
-                "chunk_index": i,
-                "chunk_hash": hashlib.md5(chunk.encode()).hexdigest()[:8]
-            })
-            
-            doc = Document(
-                page_content=chunk,
-                metadata=chunk_metadata
+            chunk_metadata.update(
+                {
+                    "chunk_index": i,
+                    "chunk_hash": hashlib.md5(chunk.encode()).hexdigest()[:8],
+                    "chunk_size": len(chunk),
+                }
             )
-            documents.append(doc)
-        
-        logger.info(f"Created {len(documents)} chunks from text")
+
+            documents.append(Document(page_content=chunk, metadata=chunk_metadata))
+
         return documents
+
+    def get_chunk_stats(self, documents: List[Document]) -> Dict[str, Any]:
+        """Get statistics about the chunks."""
+        if not documents:
+            return {"total_chunks": 0, "total_chars": 0, "avg_chunk_size": 0}
+
+        total_chars = sum(len(doc.page_content) for doc in documents)
+        return {
+            "total_chunks": len(documents),
+            "total_chars": total_chars,
+            "avg_chunk_size": total_chars // len(documents),
+            "min_chunk_size": min(len(doc.page_content) for doc in documents),
+            "max_chunk_size": max(len(doc.page_content) for doc in documents),
+        }
 
 
 @protect_class
-class VectorStoreService:
-    """
-    Vector store service using FAISS with watermark protection.
-    Copyright (c) 2024 Balenci Cash
-    """
-    
-    def __init__(self, embedding_model: str = None):
-        self.embedding_model = embedding_model or settings.EMBEDDING_MODEL
-        self.author = "Balenci Cash"
-        self.service_id = "BC-VECTOR-2024"
-        self.vector_store = None
-        self.embeddings = None
-        
-        self._initialize_embeddings()
-        logger.info(f"Vector Store Service initialized - Author: {self.author}")
-    
-    def _initialize_embeddings(self):
-        """Initialize OpenAI embeddings with watermark."""
+class VectorStoreManager:
+    """Clean vector store management."""
+
+    def __init__(self):
+        self.vector_store: Optional[FAISS] = None
+        self.embeddings = self._initialize_embeddings()
+        self.config = settings.vector
+
+    def _initialize_embeddings(self) -> OllamaEmbeddings:
+        """Initialize Ollama embeddings."""
         try:
-            self.embeddings = OpenAIEmbeddings(
-                model=self.embedding_model,
-                openai_api_key=settings.OPENAI_API_KEY
+            return OllamaEmbeddings(
+                model=settings.llm.ollama_embedding_model,
+                base_url=settings.llm.ollama_host,
             )
-            logger.info(f"Embeddings initialized with model: {self.embedding_model}")
         except Exception as e:
-            logger.error(f"Failed to initialize embeddings: {e}")
-            raise
-    
-    @protect
-    def create_vector_store(self, documents: List[Document]) -> FAISS:
-        """
-        Create FAISS vector store from documents with watermark.
-        """
+            raise VectorStoreError(
+                f"Failed to initialize Ollama embeddings: {str(e)}",
+                operation="initialize_embeddings",
+            ) from e
+
+    def create_vector_store(self, documents: List[Document]) -> None:
+        """Create new FAISS vector store from documents."""
         if not documents:
-            raise ValueError("No documents provided for vector store creation")
-        
-        # Add service watermark to all documents
-        for doc in documents:
-            doc.metadata.update({
-                "vectorized_by": self.author,
-                "vector_service": self.service_id,
-                "vector_watermark": watermark._signature_hash[:12]
-            })
-        
-        try:
-            # Create FAISS index
-            self.vector_store = FAISS.from_documents(
-                documents=documents,
-                embedding=self.embeddings
+            raise VectorStoreError(
+                "No documents provided for vector store creation",
+                operation="create_vector_store",
             )
-            
-            logger.success(f"Created vector store with {len(documents)} documents")
-            return self.vector_store
-            
-        except Exception as e:
-            logger.error(f"Failed to create vector store: {e}")
-            raise
-    
-    @protect
-    def add_documents(self, documents: List[Document]) -> None:
-        """Add new documents to existing vector store."""
-        if not self.vector_store:
-            raise ValueError("Vector store not initialized. Create it first.")
-        
-        # Add watermark to new documents
-        for doc in documents:
-            doc.metadata.update({
-                "vectorized_by": self.author,
-                "vector_service": self.service_id
-            })
-        
-        self.vector_store.add_documents(documents)
-        logger.info(f"Added {len(documents)} documents to vector store")
-    
-    @protect
-    def similarity_search(self, query: str, k: int = None) -> List[Document]:
-        """
-        Perform similarity search with watermark tracking.
-        """
-        if not self.vector_store:
-            raise ValueError("Vector store not initialized")
-        
-        k = k or settings.TOP_K_RESULTS
-        
+
         try:
-            results = self.vector_store.similarity_search(query, k=k)
-            
-            # Add search watermark to results
-            for result in results:
-                result.metadata["search_watermark"] = f"{self.author}:{watermark._signature_hash[:6]}"
-            
-            logger.info(f"Similarity search completed - Found {len(results)} results")
-            return results
-            
+            self.vector_store = FAISS.from_documents(
+                documents=documents, embedding=self.embeddings
+            )
         except Exception as e:
-            logger.error(f"Similarity search failed: {e}")
-            raise
-    
-    @protect
-    def similarity_search_with_score(self, query: str, k: int = None) -> List[tuple]:
-        """
-        Perform similarity search with relevance scores.
-        """
+            raise VectorStoreError(
+                f"Failed to create vector store: {str(e)}",
+                operation="create_vector_store",
+            ) from e
+
+    def add_documents(self, documents: List[Document]) -> None:
+        """Add documents to existing vector store."""
         if not self.vector_store:
-            raise ValueError("Vector store not initialized")
-        
-        k = k or settings.TOP_K_RESULTS
-        
+            self.create_vector_store(documents)
+            return
+
+        if not documents:
+            return
+
+        try:
+            self.vector_store.add_documents(documents)
+        except Exception as e:
+            raise VectorStoreError(
+                f"Failed to add documents: {str(e)}", operation="add_documents"
+            ) from e
+
+    def similarity_search(self, query: str, k: Optional[int] = None) -> List[Document]:
+        """Perform similarity search."""
+        if not self.vector_store:
+            raise VectorStoreError(
+                "Vector store not initialized", operation="similarity_search"
+            )
+
+        k = k or self.config.top_k_results
+
+        try:
+            return self.vector_store.similarity_search(query, k=k)
+        except Exception as e:
+            raise VectorStoreError(
+                f"Similarity search failed: {str(e)}", operation="similarity_search"
+            ) from e
+
+    def similarity_search_with_score(
+        self, query: str, k: Optional[int] = None
+    ) -> List[Tuple[Document, float]]:
+        """Perform similarity search with relevance scores."""
+        if not self.vector_store:
+            raise VectorStoreError(
+                "Vector store not initialized", operation="similarity_search_with_score"
+            )
+
+        k = k or self.config.top_k_results
+
         try:
             results = self.vector_store.similarity_search_with_score(query, k=k)
-            
-            # Add watermark and format results
-            watermarked_results = []
+            # Add relevance score to metadata
             for doc, score in results:
-                doc.metadata["search_watermark"] = f"{self.author}:{watermark._signature_hash[:6]}"
                 doc.metadata["relevance_score"] = float(score)
-                watermarked_results.append((doc, score))
-            
-            logger.info(f"Similarity search with scores completed - {len(results)} results")
-            return watermarked_results
-            
+            return results
         except Exception as e:
-            logger.error(f"Similarity search with score failed: {e}")
-            raise
-    
-    @protect
+            raise VectorStoreError(
+                f"Similarity search with score failed: {str(e)}",
+                operation="similarity_search_with_score",
+            ) from e
+
     def save_index(self, path: str) -> None:
-        """Save FAISS index to disk with watermark."""
+        """Save FAISS index to disk."""
         if not self.vector_store:
-            raise ValueError("No vector store to save")
-        
+            raise VectorStoreError("No vector store to save", operation="save_index")
+
         try:
-            self.vector_store.save_local(path)
-            
-            # Save watermark file
-            watermark_file = f"{path}/watermark.txt"
-            with open(watermark_file, 'w') as f:
-                f.write(f"Vector Index Protected by: {self.author}\n")
-                f.write(f"Service ID: {self.service_id}\n")
-                f.write(f"Watermark: {watermark._signature_hash}\n")
-            
-            logger.success(f"Vector index saved to {path}")
-            
+            index_path = Path(path)
+            index_path.mkdir(parents=True, exist_ok=True)
+            self.vector_store.save_local(str(index_path))
         except Exception as e:
-            logger.error(f"Failed to save vector index: {e}")
-            raise
-    
-    @protect
-    def load_index(self, path: str) -> FAISS:
-        """Load FAISS index from disk and verify watermark."""
+            raise VectorStoreError(
+                f"Failed to save vector index: {str(e)}", operation="save_index"
+            ) from e
+
+    def load_index(self, path: str) -> None:
+        """Load FAISS index from disk."""
         try:
             self.vector_store = FAISS.load_local(
-                path,
-                self.embeddings,
-                allow_dangerous_deserialization=True
+                path, self.embeddings, allow_dangerous_deserialization=True
             )
-            
-            # Verify watermark
-            watermark_file = f"{path}/watermark.txt"
-            if os.path.exists(watermark_file):
-                with open(watermark_file, 'r') as f:
-                    content = f.read()
-                    if self.author in content:
-                        logger.info(f"Watermark verified for index at {path}")
-            
-            logger.success(f"Vector index loaded from {path}")
-            return self.vector_store
-            
         except Exception as e:
-            logger.error(f"Failed to load vector index: {e}")
-            raise
+            raise VectorStoreError(
+                f"Failed to load vector index: {str(e)}", operation="load_index"
+            ) from e
+
+    def get_store_info(self) -> Dict[str, Any]:
+        """Get information about the vector store."""
+        if not self.vector_store:
+            return {"initialized": False}
+
+        # Get basic info (note: FAISS doesn't expose document count easily)
+        return {
+            "initialized": True,
+            "embedding_model": settings.llm.embedding_model,
+            "embedding_dimension": settings.vector.embedding_dimension,
+        }
+
+    def clear(self) -> None:
+        """Clear the vector store."""
+        self.vector_store = None
 
 
-# Create service instances
+# Global instances
 text_chunker = TextChunker()
-vector_store_service = VectorStoreService()
+vector_store = VectorStoreManager()

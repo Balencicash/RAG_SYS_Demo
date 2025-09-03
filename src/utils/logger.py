@@ -15,28 +15,45 @@ logger.remove()
 logger.add(
     sys.stdout,
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | <level>{message}</level>",
-    level=settings.LOG_LEVEL,
-    colorize=True
+    level=settings.logging.log_level,
+    colorize=True,
 )
 
 # Add file handler with rotation
 logger.add(
-    settings.LOG_FILE,
+    settings.logging.log_file,
     format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} | {message} | Author: Balenci Cash",
-    level=settings.LOG_LEVEL,
-    rotation=settings.LOG_ROTATION,
-    retention=settings.LOG_RETENTION,
-    compression="zip"
+    level=settings.logging.log_level,
+    rotation=settings.logging.log_rotation,
+    retention=settings.logging.log_retention,
+    compression="zip",
 )
+
 
 @protect
 def log_with_watermark(level: str, message: str, **kwargs):
     """Log message with embedded watermark."""
-    watermark_msg = f"{message} [WM:{watermark._signature_hash[:8]}]"
+    # Get watermark signature safely
+    try:
+        signature = getattr(watermark, "project_id", "WM")[:8]
+        watermark_msg = f"{message} [WM:{signature}]"
+    except Exception:
+        watermark_msg = f"{message} [WM:protected]"
     getattr(logger, level)(watermark_msg, **kwargs)
 
-# Initialize watermark protection on import
-logger.info(f"Logging system initialized - {settings.APP_COPYRIGHT}")
-logger.info(f"Watermark Protection Active - Signature: {settings.WATERMARK_SIGNATURE}")
 
-__all__ = ['logger', 'log_with_watermark']
+@protect
+def get_logger(name: str = None):
+    """Get logger instance with optional name."""
+    if name:
+        return logger.bind(name=name)
+    return logger
+
+
+# Initialize watermark protection on import
+logger.info(f"Logging system initialized - {settings.app.app_copyright}")
+logger.info(
+    f"Watermark Protection Active - Signature: {settings.app.watermark_signature}"
+)
+
+__all__ = ["logger", "log_with_watermark", "get_logger"]

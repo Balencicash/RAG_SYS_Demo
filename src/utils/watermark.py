@@ -1,143 +1,81 @@
 """
-Personal Watermark Protection System
-Copyright (c) 2024 Balenci Cash - All Rights Reserved
-Author: Balenci Cash
-Contact: balencicash@example.com
-License: Proprietary - Unauthorized use prohibited
-
-This module implements digital watermarking for code protection.
-Any unauthorized use or distribution will be tracked and prosecuted.
+Simplified Watermark Protection System.
+Clean and minimal implementation that doesn't interfere with core logic.
 """
 
 import hashlib
 import datetime
-import inspect
 import functools
-from typing import Any, Callable
-from cryptography.fernet import Fernet
+from typing import Any, Callable, Dict
 from loguru import logger
 
-# Unique identifier for this codebase
-AUTHOR_SIGNATURE = "BALENCICASH_RAG_SYSTEM_DEMO"
-PROJECT_ID = "RAG-SYS-Not_for_commercial_usage"
-CREATION_DATE = "2025-09-01"
 
-# Encrypted author information (for verification)
-ENCRYPTED_AUTHOR_KEY = b"gAAAAABlpYKR3x4Q8K9N2M3V5H6T7Y8U9I0O1P2Q3R4S5T6U7V8W9X0Y1Z2"
-
-
-class WatermarkProtection:
-    """
-    Digital watermark system to protect intellectual property.
-    Embeds invisible signatures in the code execution flow.
-    """
+class SimpleWatermark:
+    """Simplified watermark system for code protection."""
 
     def __init__(self):
         self.author = "BalenciCash"
-        self.email = "ttkp2333@gmail.com"
-        self.creation_time = datetime.datetime(2025, 9, 1)
-        self.execution_count = 0
-        self._signature_hash = self._generate_signature()
+        self.project_id = "RAG-SYS-Demo"
+        self.creation_date = "2025-09-01"
+        self._signature = self._generate_signature()
 
     def _generate_signature(self) -> str:
-        """Generate unique signature hash for this instance."""
-        data = f"{self.author}:{PROJECT_ID}:{CREATION_DATE}"
-        return hashlib.sha256(data.encode()).hexdigest()
+        """Generate unique signature hash."""
+        data = f"{self.author}:{self.project_id}:{self.creation_date}"
+        return hashlib.sha256(data.encode()).hexdigest()[:16]
 
-    def verify_ownership(self) -> bool:
-        """Verify the ownership of this code."""
-        expected = "6f75350766416b6426fc1ebaa30f5a7eff9c399884d49f1519eaff52ccfcef53"
-        return self._signature_hash[:32] == expected[:32]
+    def get_metadata(self) -> Dict[str, str]:
+        """Get watermark metadata."""
+        return {
+            "author": self.author,
+            "project": self.project_id,
+            "signature": self._signature,
+            "timestamp": datetime.datetime.now().isoformat(),
+        }
 
-    def embed_watermark(self, func: Callable) -> Callable:
-        """Decorator to embed watermark in function execution."""
+    def protect_function(self, func: Callable) -> Callable:
+        """Simple function protection decorator."""
 
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            # Log execution with watermark
-            self.execution_count += 1
-            frame = inspect.currentframe()
-            caller_info = inspect.getframeinfo(frame.f_back)
-
-            # Invisible watermark in execution
-            watermark_data = {
-                "author": self.author,
-                "project": PROJECT_ID,
-                "function": func.__name__,
-                "timestamp": datetime.datetime.now().isoformat(),
-                "signature": self._signature_hash[:16],
-                "exec_count": self.execution_count,
-            }
-
-            # Embed in function metadata
-            if not hasattr(func, "__watermark__"):
-                func.__watermark__ = []
-            func.__watermark__.append(watermark_data)
-
-            # Execute original function
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             result = func(*args, **kwargs)
 
-            # Add watermark to result if possible
-            if isinstance(result, dict):
-                result["__watermark__"] = {
-                    "author": self.author,
-                    "timestamp": datetime.datetime.now().isoformat(),
-                    "signature": self._signature_hash[:8],
-                }
+            # Add watermark to dict results only
+            if isinstance(result, dict) and not result.get("__watermark__"):
+                result["__watermark__"] = self.get_metadata()
 
             return result
 
-        # Add permanent watermark to function
+        # Add metadata to function
         wrapper.__author__ = self.author
-        wrapper.__project__ = PROJECT_ID
         wrapper.__protected__ = True
-        wrapper.__signature__ = self._signature_hash
 
         return wrapper
 
     def protect_class(self, cls: type) -> type:
-        """Add watermark protection to entire class."""
-        # Add class-level watermark
+        """Simple class protection."""
         cls.__author__ = self.author
-        cls.__project__ = PROJECT_ID
-        cls.__creation_date__ = CREATION_DATE
-        cls.__watermark_signature__ = self._signature_hash
-
-        # Protect all methods
-        for name, method in inspect.getmembers(cls):
-            if inspect.ismethod(method) or inspect.isfunction(method):
-                if not name.startswith("_"):
-                    setattr(cls, name, self.embed_watermark(method))
+        cls.__project__ = self.project_id
+        cls.__protected__ = True
 
         return cls
 
-    @staticmethod
-    def validate_deployment():
-        """Validate that this is an authorized deployment."""
-        logger.info(f"RAG Document QA System v1.0")
-        logger.info(f"Copyright (c) 2025 BalenciCash")
-        logger.info(f"Project ID: {PROJECT_ID}")
-        logger.info(f"This software is protected by digital watermarking")
-        logger.info(f"Unauthorized use or distribution is prohibited")
+    def initialize(self) -> bool:
+        """Initialize watermark system."""
+        logger.info(f"RAG System initialized - Author: {self.author}")
+        logger.info(f"Project: {self.project_id} | Signature: {self._signature}")
         return True
 
 
-# Global watermark instance
-watermark = WatermarkProtection()
+# Global instance
+watermark = SimpleWatermark()
 
-
-# Validation function to be called on startup
-def initialize_watermark_protection():
-    """Initialize and validate watermark protection."""
-    if not watermark.verify_ownership():
-        logger.error("Watermark verification failed - unauthorized use detected")
-        raise RuntimeError("Unauthorized use of protected software")
-
-    watermark.validate_deployment()
-    logger.success(f"Watermark protection initialized - Author: {watermark.author}")
-    return True
-
-
-# Export decorator for easy use
-protect = watermark.embed_watermark
+# Export decorators
+protect = watermark.protect_function
 protect_class = watermark.protect_class
+
+
+# Initialize function
+def initialize_watermark() -> bool:
+    """Initialize watermark protection."""
+    return watermark.initialize()

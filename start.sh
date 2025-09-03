@@ -1,10 +1,10 @@
 #!/bin/bash
 # RAG Document QA System Startup Script
-# Copyright (c) 2024 Balenci Cash
+# Copyright (c) 2025 BalenciCash
 
 echo "=============================================="
 echo "RAG Document QA System v1.0"
-echo "Copyright (c) 2024 Balenci Cash"
+echo "Copyright (c) 2025 BalenciCash"
 echo "Protected by Digital Watermark Technology"
 echo "=============================================="
 
@@ -40,6 +40,9 @@ fi
 # Create necessary directories
 mkdir -p logs uploads vector_stores
 
+# Set environment variables
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+
 # Start the application
 echo "🚀 Starting RAG Document QA System..."
 echo "📍 API will be available at: http://localhost:8000"
@@ -48,4 +51,4 @@ echo ""
 echo "Press Ctrl+C to stop the server"
 echo ""
 
-python main.py
+python src/api/main.py

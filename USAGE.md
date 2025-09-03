@@ -1,166 +1,227 @@
-# 使用指南 - RAG Document QA System
+# RAG Document QA System v2.0 - Usage Guide
 
-**版权所有 (c) 2024 Balenci Cash - 保留所有权利**
+## 🚀 Quick Start Guide
 
-## 🔐 重要提示
+### Prerequisites Setup
 
-本系统包含**数字水印保护技术**，所有核心功能都经过加密和签名保护。任何未经授权的使用、修改或分发都将被追踪和记录。
+1. **Install Ollama**
+   ```bash
+   # On macOS
+   brew install ollama
+   
+   # Start Ollama service  
+   ollama serve
+   
+   # Pull the embedding model
+   ollama pull nomic-embed-text
+   ```
 
-## 🚀 快速开始
+2. **Get Groq API Key**
+   - Visit [Groq Console](https://console.groq.com/)
+   - Create an account and get your API key
 
-### 1. 环境准备
+3. **Setup ComfyUI** (Optional - for image generation)
+   - Install ComfyUI following [official guide](https://github.com/comfyanonymous/ComfyUI)
+   - Make sure it's running on `http://127.0.0.1:8188`
+
+### Environment Configuration
+
+Copy `.env.example` to `.env` and configure:
 
 ```bash
-# 复制环境变量文件
-cp .env.example .env
+# Essential Configuration
+GROQ_API_KEY=your_groq_api_key_here
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 
-# 编辑 .env 文件，填入您的 API 密钥
-# 必须配置：OPENAI_API_KEY
-# 可选配置：LANGCHAIN_API_KEY (用于 LangSmith 追踪)
+# ComfyUI (Optional)
+COMFYUI_ENABLED=false  # Set to true to enable image generation
+COMFYUI_HOST=127.0.0.1
+COMFYUI_PORT=8188
 ```
 
-### 2. 启动系统
+## 📚 Core Features
 
-#### 方法一：使用启动脚本
+### 1. Document Processing & QA
+- Upload documents (PDF, Word, Markdown, TXT)
+- Ask questions about document content
+- Get contextual answers with source references
+
+### 2. Ollama Embeddings
+- No OpenAI dependency required
+- Local embedding generation using `nomic-embed-text`
+- Fast and efficient vector operations
+
+### 3. ComfyUI Integration (New!)
+- Generate images based on text prompts
+- Customizable generation parameters
+- Async image generation with status tracking
+
+## 🎯 API Endpoints
+
+### Document Management
+```
+POST /api/v1/upload          # Upload document
+POST /api/v1/ask             # Ask question
+DELETE /api/v1/session/{id}  # Clear session
+```
+
+### ComfyUI Integration (New!)
+```
+POST /api/v1/generate-image     # Generate image
+GET /api/v1/comfyui/status      # Check ComfyUI status
+```
+
+### System
+```
+GET /                        # Health check
+GET /health                  # Detailed health info
+GET /api/v1/status          # System status
+```
+
+## 🖼️ Image Generation Examples
+
+### Basic Image Generation
 ```bash
-./start.sh
+curl -X POST "http://localhost:8000/api/v1/generate-image" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "A beautiful sunset over mountains, digital art",
+    "negative_prompt": "low quality, blurry",
+    "width": 512,
+    "height": 512,
+    "steps": 20
+  }'
 ```
 
-#### 方法二：手动启动
-```bash
-# 安装依赖
-pip install -r requirements.txt
-
-# 启动服务
-python main.py
+### Response Format
+```json
+{
+  "success": true,
+  "prompt": "A beautiful sunset over mountains, digital art",
+  "prompt_id": "abc123",
+  "images": [
+    {
+      "filename": "rag_generated_abc123_00001_.png",
+      "url": "http://127.0.0.1:8188/view",
+      "params": {...}
+    }
+  ],
+  "timestamp": "2024-12-20T10:30:00Z"
+}
 ```
 
-#### 方法三：Docker 启动
-```bash
-docker-compose up
+## 🔧 Advanced Configuration
+
+### Ollama Configuration
+```env
+# Custom Ollama settings
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 ```
 
-### 3. 访问服务
+### ComfyUI Configuration
+```env
+# ComfyUI settings
+COMFYUI_ENABLED=true
+COMFYUI_HOST=127.0.0.1
+COMFYUI_PORT=8188
+DEFAULT_WORKFLOW_PATH=workflows/default.json
+OUTPUT_DIRECTORY=outputs/comfyui
 
-- **API 地址**: http://localhost:8000
-- **API 文档**: http://localhost:8000/docs
-- **健康检查**: http://localhost:8000/health
+# Generation defaults
+DEFAULT_WIDTH=512
+DEFAULT_HEIGHT=512
+DEFAULT_STEPS=20
+DEFAULT_CFG=7.0
+```
 
-## 📚 API 使用示例
+### Vector Store Settings
+```env
+CHUNK_SIZE=1000
+CHUNK_OVERLAP=200
+TOP_K_RESULTS=5
+```
 
-### 1. 上传文档
+## 🚨 Troubleshooting
 
+### Ollama Issues
+- Ensure Ollama is running: `ollama serve`
+- Check model is available: `ollama list`
+- Pull model if missing: `ollama pull nomic-embed-text`
+
+### ComfyUI Issues
+- Verify ComfyUI is running on correct port
+- Check workflow JSON format
+- Ensure required models are downloaded
+
+### API Issues
+- Check logs in `logs/app.log`
+- Verify environment variables
+- Test with `/health` endpoint
+
+## 🔄 Migration from v1.x
+
+### Key Changes
+1. **OpenAI Removed**: No longer needed for embeddings
+2. **Ollama Added**: Local embeddings with nomic-embed-text
+3. **ComfyUI Added**: Optional image generation
+4. **Groq Only**: Simplified LLM provider setup
+
+### Migration Steps
+1. Update environment variables
+2. Install Ollama and pull models
+3. Update API client code (if any)
+4. Test functionality
+
+## 📖 Examples
+
+### Document QA Workflow
 ```python
 import requests
 
-# 上传 PDF 文件
-with open("document.pdf", "rb") as f:
-    response = requests.post(
-        "http://localhost:8000/api/v1/upload",
-        files={"file": f}
-    )
-    print(response.json())
+# Upload document
+files = {'file': open('document.pdf', 'rb')}
+response = requests.post('http://localhost:8000/api/v1/upload', files=files)
+
+# Ask question
+data = {
+    "question": "What is the main topic of this document?",
+    "session_id": "my-session"
+}
+response = requests.post('http://localhost:8000/api/v1/ask', json=data)
+print(response.json()['answer'])
 ```
 
-### 2. 提问
-
+### Image Generation Workflow
 ```python
-# 提问并获取答案
-response = requests.post(
-    "http://localhost:8000/api/v1/question",
-    json={
-        "question": "文档中提到了什么关键内容？",
-        "session_id": "optional-session-id"  # 可选，用于多轮对话
-    }
-)
-print(response.json())
+import requests
+
+# Generate image
+data = {
+    "prompt": "A futuristic city with flying cars",
+    "width": 768,
+    "height": 768,
+    "steps": 25
+}
+response = requests.post('http://localhost:8000/api/v1/generate-image', json=data)
+print(f"Generated: {response.json()['images'][0]['filename']}")
 ```
 
-### 3. 验证水印
+## 🎯 Best Practices
 
-```python
-# 验证系统水印保护状态
-response = requests.get("http://localhost:8000/api/v1/watermark/verify")
-print(response.json())
-```
+1. **Performance**: Keep document chunks small (1000 chars)
+2. **Memory**: Clear sessions regularly for long conversations
+3. **ComfyUI**: Use reasonable image sizes to avoid timeouts
+4. **Monitoring**: Check `/health` endpoint regularly
 
-## 🔍 水印保护功能
+## 🆘 Support
 
-系统在以下层面实施水印保护：
-
-1. **代码执行层**
-   - 所有核心函数都被 `@protect` 装饰器保护
-   - 每次函数执行都会记录水印信息
-
-2. **数据处理层**
-   - 解析的文档包含不可见水印
-   - 向量索引带有作者签名
-   - API 响应包含水印元数据
-
-3. **API 层**
-   - 每个请求都验证水印
-   - 响应包含水印签名
-   - 支持水印状态查询
-
-## 📊 监控与调试
-
-### 查看日志
-
-日志文件位于 `logs/app.log`，包含：
-- 请求处理记录
-- 水印验证信息
-- 错误追踪
-- 性能指标
-
-### LangSmith 追踪
-
-如果配置了 LangSmith API 密钥，可以在 [LangSmith 平台](https://smith.langchain.com) 查看：
-- 完整调用链
-- LLM 输入输出
-- 响应时间分析
-- 相似度分数
-
-## ⚠️ 注意事项
-
-1. **API 密钥安全**
-   - 不要将 `.env` 文件提交到版本控制
-   - 定期轮换 API 密钥
-   - 使用环境变量管理敏感信息
-
-2. **水印保护**
-   - 不要尝试移除或绕过水印
-   - 所有修改都会被记录
-   - 未授权使用将承担法律责任
-
-3. **性能优化**
-   - 大文档建议分批上传
-   - 合理设置 chunk_size 参数
-   - 使用会话 ID 优化多轮对话
-
-## 🐛 故障排除
-
-### 常见问题
-
-1. **ImportError: No module named 'xxx'**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **OpenAI API 错误**
-   - 检查 API 密钥是否正确
-   - 确认账户有足够额度
-   - 检查网络连接
-
-3. **水印验证失败**
-   - 不要修改 `src/utils/watermark.py`
-   - 确保所有文件完整
-   - 联系作者获取授权
-
-## 📧 技术支持
-
-- 作者：Balenci Cash
-- 邮箱：balencicash@example.com
+- Check logs in `logs/app.log`
+- Review configuration in `.env`
+- Test with simple documents first
+- Use `/health` endpoint for diagnostics
 
 ---
 
-**免责声明**：本软件受版权法保护，未经授权的使用将承担法律责任。
+**Copyright (c) 2024 Balenci Cash - All Rights Reserved**

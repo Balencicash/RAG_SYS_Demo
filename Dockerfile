@@ -1,11 +1,11 @@
 # RAG Document QA System Docker Image
-# Copyright (c) 2024 Balenci Cash - All Rights Reserved
+# Copyright (c) 2025 BalenciCash - All Rights Reserved
 # Protected by Digital Watermark
 
 FROM python:3.11-slim
 
 # Set metadata
-LABEL maintainer="Balenci Cash <balencicash@example.com>"
+LABEL maintainer="BalenciCash <balencicash@example.com>"
 LABEL description="RAG Document QA System with Watermark Protection"
 LABEL version="1.0.0"
 
@@ -59,7 +59,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     cryptography
 
 # Create watermark verification file
-RUN echo "Protected Software - Copyright (c) 2024 Balenci Cash" > /app/WATERMARK.txt && \
+RUN echo "Protected Software - Copyright (c) 2024 BalenciCash" > /app/WATERMARK.txt && \
     echo "Project ID: RAG-SYS-Not_for_commercial_usage" >> /app/WATERMARK.txt && \
     echo "This software is protected by digital watermarking" >> /app/WATERMARK.txt
 

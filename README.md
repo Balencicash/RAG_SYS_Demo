@@ -1,204 +1,310 @@
-# RAG Document QA System
+# RAG Document QA System - Modern Architecture with ComfyUI
 
-**Copyright (c) 2025 BalenciCash - All Rights Reserved**
-
-⚠️ **PROTECTED SOFTWARE** - This codebase is protected by digital watermarking technology. Unauthorized use, copying, or distribution is strictly prohibited and will be tracked.
-
-## 📋 项目简介
-
-RAG (Retrieval-Augmented Generation) 文档问答系统，支持多种文档格式的智能问答。系统采用向量检索和大语言模型相结合的方式，提供准确的文档问答服务。
-
-### 核心特性
-
-- 📄 **多格式支持**: PDF、Word (.docx)、Markdown (.md)、TXT
-- 🔍 **向量检索**: 使用 FAISS 构建高效向量索引
-- 💬 **多轮对话**: 支持上下文保持的连续对话
-- 🔮 **LangGraph 集成**: 使用 LangGraph 构建 Agent 执行流程
-- 📊 **可观测性**: 集成 LangSmith 实现完整调用链追踪
-- 🔐 **水印保护**: 内置数字水印系统保护知识产权
-
-## 🛠 技术栈
-
-- **Python 3.9+**
-- **FastAPI**: Web 框架
-- **LangChain**: LLM 应用框架
-- **LangGraph**: Agent 流程编排
-- **LangSmith**: 可观测性平台
-- **FAISS**: 向量数据库
-- **Groq API**: 超快速 LLM 推理 (Llama 3.1)
-- **OpenAI API**: Embedding 模型
-- **Loguru**: 日志管理
-- **Docker**: 容器化部署
-
-## 📦 安装指南
-
-### 1. 克隆仓库
-
-```bash
-git clone https://github.com/balencicash/rag-document-qa-demo.git
-cd rag-document-qa
-```
-
-### 2. 安装依赖
-
-#### 使用 pip
-```bash
-pip install -r requirements.txt
-```
-
-#### 使用 uv (推荐)
-```bash
-uv pip install -r pyproject.toml
-```
-
-### 3. 配置环境变量
-
-复制环境变量模板并填写配置：
+A modern, clean i### 4. Configure Environment
 
 ```bash
 cp .env.example .env
+# Edit .env with your configuration:
+# - Add your Groq API key
+# - Configure Ollama settings
+# - Enable ComfyUI if needed
 ```
 
-编辑 `.env` 文件，填写必要的 API 密钥：
-
-```env
-# Groq Configuration (用于LLM)
-GROQ_API_KEY=your_groq_api_key_here
-
-# OpenAI Configuration (用于Embeddings)
-OPENAI_API_KEY=your_openai_api_key_here
-
-# LangSmith Configuration (可选)
-LANGCHAIN_API_KEY=your_langsmith_api_key_here
-```
-
-> 💡 **成本优化提示**: 系统默认使用 Groq 的 Llama 3.1 模型，速度快且成本低
-
-## 🚀 启动指南
-
-### 本地启动
+### 5. Run the Application
 
 ```bash
 python main.py
 ```
 
-服务将在 `http://localhost:8000` 启动
+The application will be available at: `http://localhost:8000`
 
-### Docker 启动
+## 🔧 Configuration
+
+### Modern Configuration System
+
+The configuration system is modular and type-safe:AG (Retrieval-Augmented Generation) document question-answering system with Ollama embeddings and ComfyUI integration.
+
+## 🚀 New Features in v2.0
+
+### ✨ Latest Updates
+
+- **🔥 OpenAI Dependencies Removed**: Switched from OpenAI to Ollama for embeddings
+- **🎨 ComfyUI Integration**: Added AI image generation capabilities
+- **🦾 Ollama Support**: Using `nomic-embed-text` model for embeddings
+- **🎯 Groq Only**: Simplified to use only Groq for LLM operations
+- **📦 Modular Architecture**: Clean separation of concerns
+
+### 🛠️ Technology Stack
+
+- **LLM**: Groq (Llama 3.1-8B-Instant)
+- **Embeddings**: Ollama (nomic-embed-text)  
+- **Vector Store**: FAISS
+- **Framework**: FastAPI + LangChain + LangGraph
+- **Image Generation**: ComfyUI (optional)
+- **Validation**: Pydantic
+
+### 📁 Project Structure
+
+```
+config/
+├── __init__.py           # Configuration exports
+├── settings.py           # Main settings container
+├── api_config.py         # API configuration
+├── llm_config.py         # LLM & Ollama configuration
+├── vector_config.py      # Vector store configuration
+└── comfyui_config.py     # ComfyUI configuration
+
+src/
+├── core/
+│   └── exceptions.py     # Exception handling
+├── services/
+│   ├── document_parser.py       # Document parsing
+│   ├── vectorization.py         # Ollama embeddings & FAISS
+│   ├── llm_service.py           # Groq LLM service  
+│   └── comfyui_service.py       # ComfyUI integration
+├── agents/
+│   └── rag_agent.py             # RAG workflow
+├── api/
+│   └── main.py                  # FastAPI application
+└── utils/
+    ├── logger.py                # Logging utilities
+    └── watermark.py             # Protection system
+
+workflows/
+└── default.json          # Default ComfyUI workflow
+
+main.py                   # Application entry point
+```
+
+## 🚀 Quick Start
+
+### 1. Prerequisites
+
+- **Python 3.8+**
+- **Ollama** (for embeddings): [Install Ollama](https://ollama.ai/)
+- **Groq API Key**: Get from [Groq Console](https://console.groq.com/)
+- **ComfyUI** (optional): For image generation features
+
+### 2. Install Dependencies
 
 ```bash
-# 构建镜像
-docker build -t rag-document-qa .
-
-# 运行容器
-docker run -p 8000:8000 --env-file .env rag-document-qa
+pip install -r requirements.txt
 ```
 
-### Docker Compose 启动
+### 3. Setup Ollama
 
 ```bash
-docker-compose up
+# Install and pull the embedding model
+ollama pull nomic-embed-text
 ```
 
-## 📖 使用说明
+### 2. Configure Environment
 
-### API 文档
-
-启动服务后，访问以下地址查看 API 文档：
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-### 主要接口
-
-#### 1. 上传文档
 ```bash
-curl -X POST "http://localhost:8000/api/v1/upload" \
-  -H "accept: application/json" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@document.pdf"
+cp .env.example .env
+# Edit .env with your API keys
 ```
 
-#### 2. 提问
+### 3. Run Clean Version
+
 ```bash
-curl -X POST "http://localhost:8000/api/v1/question" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "文档中提到了什么内容？",
-    "session_id": "optional-session-id"
-  }'
+python clean_main.py
 ```
 
-#### 3. 水印验证
+The clean version will be available at: `http://localhost:8000`
+
+## 🔧 Configuration
+
+### Clean Configuration System
+
+The new configuration system is modular and type-safe:
+
+```python
+from config.settings import settings
+
+# Access different configuration modules
+settings.app.app_name       # Application settings
+settings.api.api_host       # API configuration
+settings.llm.groq_model     # LLM configuration
+settings.vector.chunk_size  # Vector configuration
+settings.logging.log_level  # Logging configuration
+```
+
+### Configuration Validation
+
+The system validates configuration on startup:
+
+```python
+# Check if fully configured
+if settings.is_fully_configured:
+    print("Ready to go!")
+else:
+    missing = settings.get_missing_config()
+    print(f"Missing: {missing}")
+```
+
+## 🏛️ Architecture Improvements
+
+### 1. Clean Services
+
+Services are now focused and testable:
+
+```python
+# Document parsing with clear error handling
+from src.services.clean_document_parser import document_parser
+
+result = document_parser.parse_document("document.pdf")
+# Returns structured result with validation
+
+# Vector operations with proper abstraction
+from src.services.clean_vectorization import text_chunker, vector_store
+
+chunks = text_chunker.chunk_text(text, metadata)
+vector_store.add_documents(chunks)
+```
+
+### 2. Unified Error Handling
+
+Centralized error management:
+
+```python
+from src.core.exceptions import DocumentParsingError, VectorStoreError
+
+# All services use typed exceptions
+# Automatic HTTP error conversion
+# Consistent error logging
+```
+
+### 3. Simplified Agent
+
+The RAG agent is now clean and maintainable:
+
+```python
+from src.agents.clean_rag_agent import rag_agent
+
+result = rag_agent.process_question("What is this about?")
+# Clear workflow: initialize → process → retrieve → generate → finalize
+```
+
+## 🔍 API Endpoints
+
+### Core Endpoints
+
+- `GET /` - Health check with system info
+- `GET /health` - Basic health status  
+- `GET /status` - Detailed system status
+- `POST /api/v1/upload` - Upload and process documents
+- `POST /api/v1/question` - Ask questions about documents
+- `DELETE /api/v1/session/{session_id}` - Clear conversation history
+- `GET /api/v1/watermark/verify` - Verify system protection
+
+### Status Information
+
 ```bash
-curl -X GET "http://localhost:8000/api/v1/watermark/verify"
+curl http://localhost:8000/status
 ```
 
-## 📁 项目结构
+Returns detailed information about:
+- Configuration status
+- Service health
+- Missing configurations
+- Active components
 
-```
-rag-document-qa/
-├── src/
-│   ├── api/          # FastAPI 接口
-│   ├── services/     # 核心服务
-│   ├── agents/       # LangGraph Agent
-│   ├── models/       # 数据模型
-│   └── utils/        # 工具函数（含水印保护）
-├── config/           # 配置文件
-├── tests/            # 测试文件
-├── uploads/          # 上传文件存储
-├── vector_stores/    # 向量索引存储
-├── logs/            # 日志文件
-├── main.py          # 主程序入口
-├── pyproject.toml   # 项目配置
-├── Dockerfile       # Docker 配置
-└── docker-compose.yml
-```
+## 🧪 Testing
 
-## 🔐 水印保护说明
+Run the clean test suite:
 
-本系统集成了先进的数字水印技术：
-
-- **作者标识**: Balenci Cash
-- **项目 ID**: RAG-SYS-Not_for_commercial_usage
-- **保护级别**: 全面保护（代码、数据、API）
-
-所有核心功能都经过水印保护，包括：
-- 文档解析过程
-- 向量化处理
-- LLM 调用
-- API 响应
-
-**警告**: 任何未经授权的使用、修改或分发都将被追踪和记录。
-
-## 🧪 测试
-
-运行测试：
 ```bash
-pytest tests/
+python test_clean.py
 ```
 
-## 📊 性能指标
+Or with pytest:
 
-- 文档解析速度: ~1000 字符/秒
-- 向量检索延迟: <100ms
-- LLM 响应时间: 2-5 秒
-- 并发支持: 100+ 请求/秒
+```bash
+pytest test_clean.py -v
+```
 
-## 🤝 贡献指南
+Tests cover:
+- Document parsing
+- Text chunking
+- Vector operations
+- Configuration validation
+- Error handling
 
-本项目为私有项目，不接受外部贡献。
+## 📊 Code Quality Improvements
 
-## 📄 许可证
+### Before vs After
 
-**专有软件** - 版权所有 (c) 2025 BalenciCash
+| Aspect | Original | Clean Version |
+|--------|----------|---------------|
+| Configuration | Single monolithic file | Modular, typed configuration |
+| Error Handling | Scattered try/catch | Centralized exception system |
+| Watermark | Intrusive throughout code | Minimal, non-intrusive |
+| Services | Large, complex classes | Focused, single-responsibility |
+| Testing | Basic test file | Comprehensive test suite |
+| Type Safety | Minimal typing | Full type hints |
 
-本软件受版权法和国际条约保护。未经授权的复制或分发将承担法律责任。
+### Key Principles Applied
 
-## 📞 联系方式
+1. **Single Responsibility Principle**: Each class has one clear purpose
+2. **Dependency Injection**: Clear service boundaries and dependencies
+3. **Error Handling**: Consistent, typed exceptions throughout
+4. **Configuration Management**: Centralized, validated configuration
+5. **Testability**: All components are easily testable
+6. **Readability**: Clean, self-documenting code
 
-- 作者: BalenciCash
-- 邮箱: ttkp2333@gmail.com
+## 🔄 Migration Guide
+
+### Using Clean Components
+
+You can use the clean components alongside or instead of the original ones:
+
+```python
+# Use clean main entry point
+python clean_main.py
+
+# Import clean services
+from src.services.clean_document_parser import document_parser
+from src.services.clean_vectorization import vector_store
+from src.agents.clean_rag_agent import rag_agent
+
+# Access modular configuration
+from config.settings import settings
+```
+
+### Testing Both Versions
+
+```bash
+# Original version
+python main.py
+
+# Clean version  
+python clean_main.py
+```
+
+## 🎯 Benefits
+
+### For Developers
+
+- **Easier to understand**: Clear separation of concerns
+- **Easier to test**: Focused, injectable components
+- **Easier to extend**: Modular architecture
+- **Better error messages**: Typed exceptions with context
+
+### For Operations
+
+- **Better monitoring**: Detailed status endpoints
+- **Easier configuration**: Validation with helpful error messages
+- **Better logging**: Structured, contextual logging
+- **Easier debugging**: Clear error types and messages
+
+## 📝 License
+
+Copyright (c) 2025 BalenciCash - All Rights Reserved
+
+This software is protected by digital watermarking technology.
+Unauthorized use or distribution is prohibited and tracked.
 
 ---
 
-**重要提示**: 本软件包含数字水印保护技术。所有使用行为都将被记录和追踪。
+**Note**: This clean architecture maintains all original functionality while significantly improving code quality, readability, and maintainability.

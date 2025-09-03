@@ -1,219 +1,263 @@
 """
-Document Parser Service with Watermark Protection
-Copyright (c) 2024 Balenci Cash - All Rights Reserved
-This module handles parsing of various document formats.
+Clean Document Parser Service.
+Simplified and readable document parsing with proper error handling.
 """
 
-import os
-from pathlib import Path
-from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Dict, Any, List
 import hashlib
 
 from pypdf import PdfReader
 from docx import Document as DocxDocument
 import markdown
 
-from src.utils.logger import logger
-from src.utils.watermark import protect, protect_class, watermark
+from src.core.exceptions import DocumentParsingError
+from src.utils.watermark import protect_class
 from config.settings import settings
 
 
 class BaseParser(ABC):
-    """Base parser with watermark protection."""
-    
-    def __init__(self):
-        self.author = "Balenci Cash"
-        self.parser_signature = hashlib.md5(f"{self.author}_parser".encode()).hexdigest()
-    
+    """Base parser interface."""
+
     @abstractmethod
     def parse(self, file_path: Path) -> str:
         """Parse document and extract text."""
-        pass
-    
-    def _add_watermark_to_content(self, content: str) -> str:
-        """Add invisible watermark to parsed content."""
-        watermark_tag = f"\n<!-- Parsed by: {self.author} | Sig: {self.parser_signature[:8]} -->\n"
-        return content + watermark_tag
+
+    @abstractmethod
+    def get_supported_extensions(self) -> List[str]:
+        """Get list of supported file extensions."""
 
 
 @protect_class
 class PDFParser(BaseParser):
-    """PDF document parser with watermark protection."""
-    
-    @protect
+    """PDF document parser."""
+
     def parse(self, file_path: Path) -> str:
         """Extract text from PDF file."""
         try:
-            logger.info(f"Parsing PDF: {file_path}")
             reader = PdfReader(file_path)
             text_content = []
-            
+
             for page_num, page in enumerate(reader.pages, 1):
                 page_text = page.extract_text()
-                if page_text:
+                if page_text.strip():
                     text_content.append(f"[Page {page_num}]\n{page_text}")
-            
-            full_content = "\n\n".join(text_content)
-            return self._add_watermark_to_content(full_content)
-            
+
+            if not text_content:
+                raise DocumentParsingError(
+                    "No text content found in PDF", file_path=str(file_path)
+                )
+
+            return "\n\n".join(text_content)
+
         except Exception as e:
-            logger.error(f"Error parsing PDF {file_path}: {e}")
-            raise
+            if isinstance(e, DocumentParsingError):
+                raise
+            raise DocumentParsingError(
+                f"Failed to parse PDF: {str(e)}", file_path=str(file_path)
+            ) from e
+
+    def get_supported_extensions(self) -> List[str]:
+        return [".pdf"]
 
 
 @protect_class
 class WordParser(BaseParser):
-    """Word document parser with watermark protection."""
-    
-    @protect
+    """Word document parser."""
+
     def parse(self, file_path: Path) -> str:
         """Extract text from Word document."""
         try:
-            logger.info(f"Parsing Word document: {file_path}")
             doc = DocxDocument(file_path)
-            paragraphs = []
-            
+            text_parts = []
+
+            # Extract paragraphs
             for para in doc.paragraphs:
                 if para.text.strip():
-                    paragraphs.append(para.text)
-            
-            # Also extract text from tables
+                    text_parts.append(para.text)
+
+            # Extract table content
             for table in doc.tables:
-                for row in table.rows:
-                    for cell in row.cells:
-                        if cell.text.strip():
-                            paragraphs.append(cell.text)
-            
-            full_content = "\n\n".join(paragraphs)
-            return self._add_watermark_to_content(full_content)
-            
+                table_text = self._extract_table_text(table)
+                if table_text.strip():
+                    text_parts.append(table_text)
+
+            if not text_parts:
+                raise DocumentParsingError(
+                    "No text content found in Word document", file_path=str(file_path)
+                )
+
+            return "\n\n".join(text_parts)
+
         except Exception as e:
-            logger.error(f"Error parsing Word document {file_path}: {e}")
-            raise
+            if isinstance(e, DocumentParsingError):
+                raise
+            raise DocumentParsingError(
+                f"Failed to parse Word document: {str(e)}", file_path=str(file_path)
+            ) from e
+
+    def _extract_table_text(self, table) -> str:
+        """Extract text from a Word table."""
+        rows = []
+        for row in table.rows:
+            cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+            if cells:
+                rows.append(" | ".join(cells))
+        return "\n".join(rows)
+
+    def get_supported_extensions(self) -> List[str]:
+        return [".docx"]
 
 
 @protect_class
 class MarkdownParser(BaseParser):
-    """Markdown document parser with watermark protection."""
-    
-    @protect
+    """Markdown document parser."""
+
     def parse(self, file_path: Path) -> str:
         """Extract and convert markdown to plain text."""
         try:
-            logger.info(f"Parsing Markdown: {file_path}")
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 md_content = f.read()
-            
+
+            if not md_content.strip():
+                raise DocumentParsingError(
+                    "Empty markdown file", file_path=str(file_path)
+                )
+
             # Convert markdown to HTML then extract text
             html = markdown.markdown(md_content)
-            # Simple HTML tag removal (for plain text extraction)
+
+            # Simple HTML tag removal
             import re
-            text = re.sub('<[^<]+?>', '', html)
-            
-            return self._add_watermark_to_content(text)
-            
+
+            text = re.sub("<[^<]+?>", "", html)
+            text = text.replace("&nbsp;", " ").replace("&lt;", "<").replace("&gt;", ">")
+
+            return text.strip()
+
         except Exception as e:
-            logger.error(f"Error parsing Markdown {file_path}: {e}")
-            raise
+            if isinstance(e, DocumentParsingError):
+                raise
+            raise DocumentParsingError(
+                f"Failed to parse Markdown: {str(e)}", file_path=str(file_path)
+            ) from e
+
+    def get_supported_extensions(self) -> List[str]:
+        return [".md", ".markdown"]
 
 
 @protect_class
 class TextParser(BaseParser):
-    """Plain text parser with watermark protection."""
-    
-    @protect
+    """Plain text parser."""
+
     def parse(self, file_path: Path) -> str:
         """Read plain text file."""
         try:
-            logger.info(f"Parsing text file: {file_path}")
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            
-            return self._add_watermark_to_content(content)
-            
+
+            if not content.strip():
+                raise DocumentParsingError("Empty text file", file_path=str(file_path))
+
+            return content.strip()
+
         except Exception as e:
-            logger.error(f"Error parsing text file {file_path}: {e}")
-            raise
+            if isinstance(e, DocumentParsingError):
+                raise
+            raise DocumentParsingError(
+                f"Failed to parse text file: {str(e)}", file_path=str(file_path)
+            ) from e
+
+    def get_supported_extensions(self) -> List[str]:
+        return [".txt"]
 
 
 @protect_class
 class DocumentParserService:
-    """
-    Main document parser service with watermark protection.
-    Copyright (c) 2024 Balenci Cash
-    """
-    
+    """Main document parser service."""
+
     def __init__(self):
-        self.parsers = {
-            '.pdf': PDFParser(),
-            '.docx': WordParser(),
-            '.md': MarkdownParser(),
-            '.txt': TextParser()
-        }
-        self.author = "Balenci Cash"
-        self.service_id = "BC-PARSER-2024"
-        logger.info(f"Document Parser Service initialized - Author: {self.author}")
-    
-    @protect
-    def parse_document(self, file_path: str) -> Dict[str, Any]:
-        """
-        Parse document and return extracted content with metadata.
-        Includes watermark in the result.
-        """
+        self.parsers = self._initialize_parsers()
+        self._extension_map = self._build_extension_map()
+
+    def _initialize_parsers(self) -> List[BaseParser]:
+        """Initialize all available parsers."""
+        return [
+            PDFParser(),
+            WordParser(),
+            MarkdownParser(),
+            TextParser(),
+        ]
+
+    def _build_extension_map(self) -> Dict[str, BaseParser]:
+        """Build mapping from file extensions to parsers."""
+        extension_map = {}
+        for parser in self.parsers:
+            for ext in parser.get_supported_extensions():
+                extension_map[ext.lower()] = parser
+        return extension_map
+
+    def is_supported(self, file_path: str) -> bool:
+        """Check if file type is supported."""
+        extension = Path(file_path).suffix.lower()
+        return extension in self._extension_map
+
+    def get_supported_extensions(self) -> List[str]:
+        """Get all supported file extensions."""
+        return list(self._extension_map.keys())
+
+    def validate_file(self, file_path: str) -> None:
+        """Validate file before parsing."""
         path = Path(file_path)
-        
+
         if not path.exists():
-            raise FileNotFoundError(f"File not found: {file_path}")
-        
+            raise DocumentParsingError(
+                f"File not found: {file_path}", file_path=file_path
+            )
+
+        if not self.is_supported(file_path):
+            supported = ", ".join(self.get_supported_extensions())
+            raise DocumentParsingError(
+                f"Unsupported file type. Supported: {supported}", file_path=file_path
+            )
+
+        file_size = path.stat().st_size
+        if file_size > settings.api.max_file_size:
+            raise DocumentParsingError(
+                f"File too large: {file_size} bytes. Max: {settings.api.max_file_size} bytes",
+                file_path=file_path,
+            )
+
+    def parse_document(self, file_path: str) -> Dict[str, Any]:
+        """Parse document and return extracted content with metadata."""
+        # Validate file first
+        self.validate_file(file_path)
+
+        path = Path(file_path)
         extension = path.suffix.lower()
-        if extension not in self.parsers:
-            raise ValueError(f"Unsupported file type: {extension}")
-        
+        parser = self._extension_map[extension]
+
         # Parse document
-        parser = self.parsers[extension]
         content = parser.parse(path)
-        
-        # Calculate content hash for integrity
+
+        # Calculate content hash
         content_hash = hashlib.sha256(content.encode()).hexdigest()
-        
-        # Prepare result with watermark
-        result = {
+
+        return {
             "file_name": path.name,
             "file_path": str(path),
             "file_type": extension,
             "content": content,
             "content_hash": content_hash,
             "char_count": len(content),
+            "word_count": len(content.split()),
             "metadata": {
-                "parser_service": self.service_id,
-                "author": self.author,
-                "watermark": watermark._signature_hash[:16],
-                "protected": True
-            }
+                "parser": parser.__class__.__name__,
+                "file_size": path.stat().st_size,
+            },
         }
-        
-        logger.success(f"Successfully parsed {path.name} - Hash: {content_hash[:8]}")
-        return result
-    
-    @protect
-    def validate_file(self, file_path: str) -> bool:
-        """Validate if file is supported and within size limits."""
-        path = Path(file_path)
-        
-        if not path.exists():
-            return False
-        
-        if path.suffix.lower() not in self.parsers:
-            return False
-        
-        file_size = path.stat().st_size
-        if file_size > settings.MAX_FILE_SIZE:
-            logger.warning(f"File {path.name} exceeds size limit: {file_size} bytes")
-            return False
-        
-        return True
 
 
-# Create singleton instance
-document_parser_service = DocumentParserService()
+# Global instance
+document_parser = DocumentParserService()

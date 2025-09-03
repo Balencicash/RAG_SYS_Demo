@@ -1,75 +1,116 @@
 """
-Configuration settings for RAG Document QA System
-Copyright (c) 2025 BalenciCash - Protected Software
+Unified Configuration settings for RAG Document QA System.
+Clean and readable configuration management.
 """
 
-import os
 from pathlib import Path
 from pydantic_settings import BaseSettings
-from typing import Optional
+
+from .llm_config import LLMConfig
+from .vector_config import VectorConfig
+from .api_config import APIConfig
+from .comfyui_config import ComfyUIConfig
 
 
-class Settings(BaseSettings):
-    """Application settings with watermark protection."""
+class LoggingConfig(BaseSettings):
+    """Logging configuration."""
 
-    # Application Info (Watermarked)
-    APP_NAME: str = "RAG Document QA System"
-    APP_VERSION: str = "1.0.0"
-    APP_AUTHOR: str = "BalenciCash"
-    APP_COPYRIGHT: str = "Copyright (c) 2025 BalenciCash - All Rights Reserved"
-
-    # API Settings
-    API_HOST: str = "0.0.0.0"
-    API_PORT: int = 8000
-    API_PREFIX: str = "/api/v1"
-
-    # LLM Configuration
-    OPENAI_API_KEY: Optional[str] = None  # Still needed for embeddings
-    GROQ_API_KEY: Optional[str] = None
-    LLM_PROVIDER: str = "groq"  # groq or openai
-    GROQ_MODEL: str = "llama-3.1-8b-instant"
-    OPENAI_MODEL: str = "gpt-3.5-turbo"
-    EMBEDDING_MODEL: str = "text-embedding-ada-002"
-    MAX_TOKENS: int = 500  # Reduced to save costs
-    TEMPERATURE: float = 0.3  # Lower for more consistent outputs
-
-    # LangSmith Configuration
-    LANGCHAIN_TRACING_V2: bool = True
-    LANGCHAIN_ENDPOINT: str = "https://api.smith.langchain.com"
-    LANGCHAIN_API_KEY: Optional[str] = None
-    LANGCHAIN_PROJECT: str = "rag-document-qa"
-
-    # Vector Store Settings
-    VECTOR_STORE_TYPE: str = "faiss"
-    CHUNK_SIZE: int = 1000
-    CHUNK_OVERLAP: int = 200
-    TOP_K_RESULTS: int = 5
-
-    # File Upload Settings
-    MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
-    ALLOWED_EXTENSIONS: list = [".pdf", ".docx", ".md", ".txt"]
-    UPLOAD_DIR: Path = Path("./uploads")
-
-    # Logging Settings
-    LOG_LEVEL: str = "INFO"
-    LOG_FILE: str = "logs/app.log"
-    LOG_ROTATION: str = "10 MB"
-    LOG_RETENTION: str = "7 days"
-
-    # Security & Watermark
-    ENABLE_WATERMARK: bool = True
-    WATERMARK_SIGNATURE: str = "BC-RAG-2024"
+    log_level: str = "INFO"
+    log_file: str = "logs/app.log"
+    log_rotation: str = "10 MB"
+    log_retention: str = "7 days"
+    log_format: str = (
+        "{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} | {message}"
+    )
 
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
-        "case_sensitive": True,
+        "case_sensitive": False,
+        "extra": "ignore",
     }
 
 
-# Initialize settings
-settings = Settings()
+class AppSettings(BaseSettings):
+    """Main application settings."""
 
-# Create directories if they don't exist
-settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-Path("logs").mkdir(exist_ok=True)
+    # Application Identity
+    app_name: str = "RAG Document QA System"
+    app_version: str = "1.0.0"
+    app_author: str = "BalenciCash"
+    app_copyright: str = "Copyright (c) 2025 BalenciCash - All Rights Reserved"
+    app_description: str = "RAG-based Document Question Answering System"
+
+    # Environment
+    environment: str = "development"
+    debug: bool = False
+
+    # Security & Watermark (simplified)
+    enable_watermark: bool = True
+    watermark_signature: str = "BC-RAG-2024"
+
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+        "extra": "ignore",
+    }
+
+    @property
+    def is_production(self) -> bool:
+        """Check if running in production."""
+        return self.environment.lower() == "production"
+
+    @property
+    def is_development(self) -> bool:
+        """Check if running in development."""
+        return self.environment.lower() == "development"
+
+
+class Settings:
+    """Unified settings container."""
+
+    def __init__(self):
+        self.app = AppSettings()
+        self.llm = LLMConfig()
+        self.vector = VectorConfig()
+        self.api = APIConfig()
+        self.comfyui = ComfyUIConfig()
+        self.logging = LoggingConfig()
+
+        # Create necessary directories
+        self._ensure_directories()
+
+    def _ensure_directories(self):
+        """Ensure all required directories exist."""
+        directories = [
+            self.api.upload_dir,
+            self.vector.vector_store_path,
+            Path("logs"),
+        ]
+
+        for directory in directories:
+            directory.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def is_fully_configured(self) -> bool:
+        """Check if all required configurations are set."""
+        return (
+            self.llm.is_groq_configured or self.llm.is_openai_configured
+        ) and self.llm.is_openai_configured  # Need OpenAI for embeddings
+
+    def get_missing_config(self) -> list:
+        """Get list of missing required configurations."""
+        missing = []
+
+        if not (self.llm.is_groq_configured or self.llm.is_openai_configured):
+            missing.append("LLM API key (GROQ_API_KEY or OPENAI_API_KEY)")
+
+        if not self.llm.is_openai_configured:
+            missing.append("OpenAI API key for embeddings (OPENAI_API_KEY)")
+
+        return missing
+
+
+# Initialize global settings instance
+settings = Settings()
