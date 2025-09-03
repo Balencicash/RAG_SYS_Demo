@@ -5,6 +5,8 @@ Simplified and readable API with proper error handling and validation.
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import uuid
@@ -14,7 +16,6 @@ from src.core.exceptions import handle_error_and_raise
 from src.services.document_parser import document_parser
 from src.services.vectorization import text_chunker, vector_store
 from src.services.llm_service import llm_service
-from src.services.comfyui_service import comfyui_service
 from src.agents.rag_agent import rag_agent
 from src.utils.watermark import watermark, initialize_watermark
 from config.settings import settings
@@ -36,10 +37,20 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(CORSMiddleware, **settings.api.cors_config)
 
+# Mount static files for web interface
+web_dir = Path(__file__).parent.parent.parent / "web"
+if web_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(web_dir)), name="static")
+
 
 # Request/Response Models
 class QuestionRequest(BaseModel):
     question: str
+    session_id: Optional[str] = None
+
+
+class QueryRequest(BaseModel):
+    query: str
     session_id: Optional[str] = None
 
 
@@ -71,27 +82,6 @@ class StatusResponse(BaseModel):
     services: Dict[str, Any]
 
 
-class ImageGenerationRequest(BaseModel):
-    prompt: str
-    negative_prompt: Optional[str] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    steps: Optional[int] = None
-    cfg: Optional[float] = None
-    sampler_name: Optional[str] = None
-    scheduler: Optional[str] = None
-
-
-class ImageGenerationResponse(BaseModel):
-    success: bool
-    prompt: str
-    prompt_id: Optional[str] = None
-    images: Optional[List[Dict[str, Any]]] = None
-    error: Optional[str] = None
-    settings: Optional[Dict[str, Any]] = None
-    timestamp: str
-
-
 # Startup event
 @app.on_event("startup")
 async def startup_event():
@@ -106,27 +96,37 @@ async def startup_event():
         logger.warning("Some features may not work properly")
 
 
-# Health check endpoints
-@app.get("/", response_model=HealthResponse)
-async def root():
-    """Root endpoint."""
-    return HealthResponse(
-        status="healthy",
-        version=settings.app.app_version,
-        author=settings.app.app_author,
-        watermark=watermark.get_metadata(),
+# Root route - serve web interface
+@app.get("/", response_class=HTMLResponse)
+async def read_root():
+    """Serve the web interface."""
+    web_dir = Path(__file__).parent.parent.parent / "web"
+    index_file = web_dir / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return HTMLResponse(
+        """
+    <html>
+        <head><title>RAG Document QA System v2.0</title></head>
+        <body>
+            <h1>RAG Document QA System v2.0</h1>
+            <p>Web interface not found. Please check installation.</p>
+            <p><a href="/docs">API Documentation</a></p>
+        </body>
+    </html>
+    """
     )
 
 
-@app.get("/health", response_model=HealthResponse)
+@app.get("/health")
 async def health_check():
-    """Health check endpoint."""
-    return HealthResponse(
-        status="healthy",
-        version=settings.app.app_version,
-        author=settings.app.app_author,
-        watermark=watermark.get_metadata(),
-    )
+    """Simple health check endpoint."""
+    return {
+        "status": "healthy",
+        "version": settings.app.app_version,
+        "author": settings.app.app_author,
+        "watermark": watermark.get_metadata(),
+    }
 
 
 @app.get("/status", response_model=StatusResponse)
@@ -283,57 +283,6 @@ async def clear_session(session_id: str) -> dict:
         handle_error_and_raise(e, "clear_session")
 
 
-# ComfyUI Endpoints
-@app.post(
-    f"{settings.api.api_prefix}/generate-image", response_model=ImageGenerationResponse
-)
-async def generate_image(request: ImageGenerationRequest):
-    """Generate an image using ComfyUI."""
-    try:
-        if not settings.comfyui.is_enabled:
-            raise HTTPException(
-                status_code=503, detail="ComfyUI service is not enabled"
-            )
-
-        # Prepare generation parameters
-        kwargs = {}
-        if request.width:
-            kwargs["width"] = request.width
-        if request.height:
-            kwargs["height"] = request.height
-        if request.steps:
-            kwargs["steps"] = request.steps
-        if request.cfg:
-            kwargs["cfg"] = request.cfg
-        if request.sampler_name:
-            kwargs["sampler_name"] = request.sampler_name
-        if request.scheduler:
-            kwargs["scheduler"] = request.scheduler
-
-        # Generate image
-        result = await comfyui_service.generate_image(
-            prompt=request.prompt, negative_prompt=request.negative_prompt, **kwargs
-        )
-
-        return ImageGenerationResponse(**result)
-
-    except Exception as e:
-        handle_error_and_raise(e, "Image generation")
-
-
-@app.get(f"{settings.api.api_prefix}/comfyui/status")
-async def get_comfyui_status():
-    """Get ComfyUI service status."""
-    try:
-        status = await comfyui_service.get_status()
-        return {
-            "comfyui_status": status,
-            "watermark": watermark.get_metadata(),
-        }
-    except Exception as e:
-        handle_error_and_raise(e, "ComfyUI status check")
-
-
 # Watermark verification
 @app.get(f"{settings.api.api_prefix}/watermark/verify")
 async def verify_watermark() -> dict:
@@ -347,6 +296,50 @@ async def verify_watermark() -> dict:
         "message": "This software is protected by digital watermarking",
         "watermark": watermark.get_metadata(),
     }
+
+
+# Additional API endpoints for web interface compatibility
+@app.post(f"{settings.api.api_prefix}/query", response_model=QuestionResponse)
+async def query_documents(request: QueryRequest):
+    """Query documents - RAG endpoint with query parameter."""
+    # Convert QueryRequest to QuestionRequest
+    question_request = QuestionRequest(
+        question=request.query, session_id=request.session_id
+    )
+    return await ask_question(question_request)
+
+
+@app.get(f"{settings.api.api_prefix}/documents")
+async def list_documents() -> dict:
+    """List uploaded documents."""
+    try:
+        # Get document count and metadata from vector store
+        store_info = vector_store.get_store_info()
+
+        return {
+            "success": True,
+            "documents": store_info.get("document_count", 0),
+            "total_chunks": store_info.get("total_vectors", 0),
+            "store_info": store_info,
+            "watermark": watermark.get_metadata(),
+        }
+    except Exception as e:
+        handle_error_and_raise(e, "list_documents")
+
+
+@app.delete(f"{settings.api.api_prefix}/documents/clear")
+async def clear_documents() -> dict:
+    """Clear all uploaded documents."""
+    try:
+        vector_store.clear_documents()
+
+        return {
+            "success": True,
+            "message": "All documents cleared successfully",
+            "watermark": watermark.get_metadata(),
+        }
+    except Exception as e:
+        handle_error_and_raise(e, "clear_documents")
 
 
 # Import llm_service for session management

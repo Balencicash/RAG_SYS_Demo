@@ -150,8 +150,10 @@ class LLMService:
 
         try:
             # Generate response
-            callbacks = [self.tracer] if self.tracer else []
-            response = self.llm.invoke(messages, callbacks=callbacks)
+            if self.tracer:
+                response = self.llm.invoke(messages, callbacks=[self.tracer])
+            else:
+                response = self.llm.invoke(messages)
             answer = response.content
 
             # Store in memory

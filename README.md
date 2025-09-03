@@ -1,310 +1,221 @@
-# RAG Document QA System - Modern Architecture with ComfyUI
+# RAG Document QA System v2.0
 
-A modern, clean i### 4. Configure Environment
+一个基于现代AI技术的文档问答系统，提供智能文档分析和对话式问答体验。
 
-```bash
-cp .env.example .env
-# Edit .env with your configuration:
-# - Add your Groq API key
-# - Configure Ollama settings
-# - Enable ComfyUI if needed
-```
+## ✨ 主要特性
 
-### 5. Run the Application
+- 🚀 **现代化Web界面**：响应式设计，类ChatGPT用户体验
+- 📄 **智能文档处理**：支持多种文档格式的自动解析和向量化
+- 🤖 **先进RAG技术**：结合检索增强生成，提供准确的上下文相关答案
+- 🔒 **本地化部署**：数据安全，支持完全本地运行
+- ⚡ **高性能API**：基于FastAPI的现代RESTful接口
+- 🎨 **直观UI设计**：深色主题，现代化交互体验
 
-```bash
-python main.py
-```
+## 🛠️ 技术栈
 
-The application will be available at: `http://localhost:8000`
+- **后端**：Python 3.12 + FastAPI + LangChain
+- **前端**：HTML5 + CSS3 + JavaScript (原生)
+- **AI模型**：Groq (llama-3.1-8b-instant) + Ollama (nomic-embed-text)
+- **向量数据库**：FAISS
+- **文档处理**：LangChain Document Loaders
 
-## 🔧 Configuration
+## 🚀 快速开始
 
-### Modern Configuration System
-
-The configuration system is modular and type-safe:AG (Retrieval-Augmented Generation) document question-answering system with Ollama embeddings and ComfyUI integration.
-
-## 🚀 New Features in v2.0
-
-### ✨ Latest Updates
-
-- **🔥 OpenAI Dependencies Removed**: Switched from OpenAI to Ollama for embeddings
-- **🎨 ComfyUI Integration**: Added AI image generation capabilities
-- **🦾 Ollama Support**: Using `nomic-embed-text` model for embeddings
-- **🎯 Groq Only**: Simplified to use only Groq for LLM operations
-- **📦 Modular Architecture**: Clean separation of concerns
-
-### 🛠️ Technology Stack
-
-- **LLM**: Groq (Llama 3.1-8B-Instant)
-- **Embeddings**: Ollama (nomic-embed-text)  
-- **Vector Store**: FAISS
-- **Framework**: FastAPI + LangChain + LangGraph
-- **Image Generation**: ComfyUI (optional)
-- **Validation**: Pydantic
-
-### 📁 Project Structure
-
-```
-config/
-├── __init__.py           # Configuration exports
-├── settings.py           # Main settings container
-├── api_config.py         # API configuration
-├── llm_config.py         # LLM & Ollama configuration
-├── vector_config.py      # Vector store configuration
-└── comfyui_config.py     # ComfyUI configuration
-
-src/
-├── core/
-│   └── exceptions.py     # Exception handling
-├── services/
-│   ├── document_parser.py       # Document parsing
-│   ├── vectorization.py         # Ollama embeddings & FAISS
-│   ├── llm_service.py           # Groq LLM service  
-│   └── comfyui_service.py       # ComfyUI integration
-├── agents/
-│   └── rag_agent.py             # RAG workflow
-├── api/
-│   └── main.py                  # FastAPI application
-└── utils/
-    ├── logger.py                # Logging utilities
-    └── watermark.py             # Protection system
-
-workflows/
-└── default.json          # Default ComfyUI workflow
-
-main.py                   # Application entry point
-```
-
-## 🚀 Quick Start
-
-### 1. Prerequisites
-
-- **Python 3.8+**
-- **Ollama** (for embeddings): [Install Ollama](https://ollama.ai/)
-- **Groq API Key**: Get from [Groq Console](https://console.groq.com/)
-- **ComfyUI** (optional): For image generation features
-
-### 2. Install Dependencies
+### 1. 环境准备
 
 ```bash
+# 克隆项目
+git clone <repository-url>
+cd rag-document-qa-system
+
+# 安装Python依赖
 pip install -r requirements.txt
-```
 
-### 3. Setup Ollama
-
-```bash
-# Install and pull the embedding model
+# 启动Ollama（用于嵌入模型）
+ollama serve
 ollama pull nomic-embed-text
 ```
 
-### 2. Configure Environment
+### 2. 配置环境
+
+创建`.env`文件：
 
 ```bash
-cp .env.example .env
-# Edit .env with your API keys
+# Groq API配置
+GROQ_API_KEY=your_groq_api_key_here
+
+# LangSmith配置（可选）
+LANGCHAIN_API_KEY=your_langsmith_api_key_here
+LANGCHAIN_PROJECT=rag-document-qa
+LANGCHAIN_TRACING_V2=true
 ```
 
-### 3. Run Clean Version
+### 3. 启动系统
 
 ```bash
-python clean_main.py
+# 启动服务器
+chmod +x start_server.sh
+./start_server.sh
 ```
 
-The clean version will be available at: `http://localhost:8000`
+### 4. 访问系统
 
-## 🔧 Configuration
+- **Web界面**：http://localhost:8000
+- **API文档**：http://localhost:8000/docs
+- **健康检查**：http://localhost:8000/health
 
-### Clean Configuration System
+## 💻 使用方法
 
-The new configuration system is modular and type-safe:
+### Web界面使用
 
-```python
-from config.settings import settings
+1. **上传文档**：将TXT文件拖拽到上传区域或点击选择文件
+2. **开始对话**：在聊天框中输入问题
+3. **查看回答**：系统会基于文档内容提供准确回答
+4. **管理文档**：通过文档管理页面查看和删除已上传文档
 
-# Access different configuration modules
-settings.app.app_name       # Application settings
-settings.api.api_host       # API configuration
-settings.llm.groq_model     # LLM configuration
-settings.vector.chunk_size  # Vector configuration
-settings.logging.log_level  # Logging configuration
-```
-
-### Configuration Validation
-
-The system validates configuration on startup:
-
-```python
-# Check if fully configured
-if settings.is_fully_configured:
-    print("Ready to go!")
-else:
-    missing = settings.get_missing_config()
-    print(f"Missing: {missing}")
-```
-
-## 🏛️ Architecture Improvements
-
-### 1. Clean Services
-
-Services are now focused and testable:
-
-```python
-# Document parsing with clear error handling
-from src.services.clean_document_parser import document_parser
-
-result = document_parser.parse_document("document.pdf")
-# Returns structured result with validation
-
-# Vector operations with proper abstraction
-from src.services.clean_vectorization import text_chunker, vector_store
-
-chunks = text_chunker.chunk_text(text, metadata)
-vector_store.add_documents(chunks)
-```
-
-### 2. Unified Error Handling
-
-Centralized error management:
-
-```python
-from src.core.exceptions import DocumentParsingError, VectorStoreError
-
-# All services use typed exceptions
-# Automatic HTTP error conversion
-# Consistent error logging
-```
-
-### 3. Simplified Agent
-
-The RAG agent is now clean and maintainable:
-
-```python
-from src.agents.clean_rag_agent import rag_agent
-
-result = rag_agent.process_question("What is this about?")
-# Clear workflow: initialize → process → retrieve → generate → finalize
-```
-
-## 🔍 API Endpoints
-
-### Core Endpoints
-
-- `GET /` - Health check with system info
-- `GET /health` - Basic health status  
-- `GET /status` - Detailed system status
-- `POST /api/v1/upload` - Upload and process documents
-- `POST /api/v1/question` - Ask questions about documents
-- `DELETE /api/v1/session/{session_id}` - Clear conversation history
-- `GET /api/v1/watermark/verify` - Verify system protection
-
-### Status Information
+### API使用示例
 
 ```bash
-curl http://localhost:8000/status
+# 上传文档
+curl -X POST "http://localhost:8000/api/v1/upload" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@document.txt"
+
+# 提问查询
+curl -X POST "http://localhost:8000/api/v1/query" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "文档的主要内容是什么？"}'
+
+# 查看文档列表
+curl -X GET "http://localhost:8000/api/v1/documents"
 ```
 
-Returns detailed information about:
-- Configuration status
-- Service health
-- Missing configurations
-- Active components
+## 📚 API文档
 
-## 🧪 Testing
+系统提供完整的RESTful API：
 
-Run the clean test suite:
+| 端点 | 方法 | 描述 |
+|-----|------|------|
+| `/` | GET | Web界面首页 |
+| `/health` | GET | 系统健康检查 |
+| `/api/v1/upload` | POST | 上传文档 |
+| `/api/v1/query` | POST | RAG查询 |
+| `/api/v1/documents` | GET | 文档列表 |
+| `/api/v1/documents/clear` | DELETE | 清空所有文档 |
+
+详细API文档请访问：http://localhost:8000/docs
+
+## 🏗️ 项目结构
+
+```
+RAG-Document-QA-System-v2.0/
+├── web/                     # Web前端
+│   ├── index.html          # 主页面
+│   └── app.js              # JavaScript客户端
+├── src/                     # 源代码
+│   ├── agents/             # RAG代理
+│   ├── api/                # FastAPI路由
+│   ├── services/           # 核心服务
+│   └── utils/              # 工具函数
+├── config/                  # 配置文件
+├── uploads/                 # 文档存储
+├── vector_stores/           # 向量数据库
+├── requirements.txt         # Python依赖
+├── start_server.sh         # 启动脚本
+└── README.md               # 项目文档
+```
+
+## 🔧 配置说明
+
+### LLM配置 (config/llm_config.py)
+- **Groq API**：用于文本生成
+- **Ollama**：用于文档嵌入
+- **模型参数**：温度、最大令牌等
+
+### 向量存储配置 (config/vector_config.py)
+- **FAISS**：本地向量数据库
+- **嵌入维度**：1536维
+- **相似性搜索**：余弦相似度
+
+### API配置 (config/api_config.py)
+- **服务器端口**：8000
+- **CORS设置**：支持跨域请求
+- **文件上传**：大小限制和格式验证
+
+## 🛡️ 安全特性
+
+- **数字水印**：所有输出包含版权保护
+- **本地处理**：文档数据不离开本地环境
+- **输入验证**：严格的API参数验证
+- **错误处理**：完善的异常处理机制
+
+## 📈 性能特点
+
+- **快速启动**：优化的启动流程，几秒内可用
+- **高效检索**：FAISS向量搜索，毫秒级响应
+- **内存优化**：智能文档分块，降低内存使用
+- **并发支持**：异步API，支持多用户同时使用
+
+## 🔍 故障排除
+
+### 常见问题
+
+1. **Ollama连接失败**
+   ```bash
+   # 确保Ollama正在运行
+   ollama serve
+   ```
+
+2. **Groq API错误**
+   ```bash
+   # 检查API密钥是否正确配置
+   echo $GROQ_API_KEY
+   ```
+
+3. **端口被占用**
+   ```bash
+   # 修改config/api_config.py中的端口设置
+   api_port: int = 8001  # 改为其他端口
+   ```
+
+### 日志查看
 
 ```bash
-python test_clean.py
+# 查看服务器日志
+tail -f server.log
+
+# 查看详细错误
+tail -f logs/app.log
 ```
 
-Or with pytest:
+## 🤝 贡献指南
 
-```bash
-pytest test_clean.py -v
-```
+欢迎提交Issue和Pull Request！
 
-Tests cover:
-- Document parsing
-- Text chunking
-- Vector operations
-- Configuration validation
-- Error handling
+1. Fork项目
+2. 创建特性分支
+3. 提交更改
+4. 推送到分支
+5. 创建Pull Request
 
-## 📊 Code Quality Improvements
-
-### Before vs After
-
-| Aspect | Original | Clean Version |
-|--------|----------|---------------|
-| Configuration | Single monolithic file | Modular, typed configuration |
-| Error Handling | Scattered try/catch | Centralized exception system |
-| Watermark | Intrusive throughout code | Minimal, non-intrusive |
-| Services | Large, complex classes | Focused, single-responsibility |
-| Testing | Basic test file | Comprehensive test suite |
-| Type Safety | Minimal typing | Full type hints |
-
-### Key Principles Applied
-
-1. **Single Responsibility Principle**: Each class has one clear purpose
-2. **Dependency Injection**: Clear service boundaries and dependencies
-3. **Error Handling**: Consistent, typed exceptions throughout
-4. **Configuration Management**: Centralized, validated configuration
-5. **Testability**: All components are easily testable
-6. **Readability**: Clean, self-documenting code
-
-## 🔄 Migration Guide
-
-### Using Clean Components
-
-You can use the clean components alongside or instead of the original ones:
-
-```python
-# Use clean main entry point
-python clean_main.py
-
-# Import clean services
-from src.services.clean_document_parser import document_parser
-from src.services.clean_vectorization import vector_store
-from src.agents.clean_rag_agent import rag_agent
-
-# Access modular configuration
-from config.settings import settings
-```
-
-### Testing Both Versions
-
-```bash
-# Original version
-python main.py
-
-# Clean version  
-python clean_main.py
-```
-
-## 🎯 Benefits
-
-### For Developers
-
-- **Easier to understand**: Clear separation of concerns
-- **Easier to test**: Focused, injectable components
-- **Easier to extend**: Modular architecture
-- **Better error messages**: Typed exceptions with context
-
-### For Operations
-
-- **Better monitoring**: Detailed status endpoints
-- **Easier configuration**: Validation with helpful error messages
-- **Better logging**: Structured, contextual logging
-- **Easier debugging**: Clear error types and messages
-
-## 📝 License
+## 📄 许可证
 
 Copyright (c) 2025 BalenciCash - All Rights Reserved
 
-This software is protected by digital watermarking technology.
-Unauthorized use or distribution is prohibited and tracked.
+本项目受数字水印保护，未经授权不得商业使用。
 
 ---
 
-**Note**: This clean architecture maintains all original functionality while significantly improving code quality, readability, and maintainability.
+## 🎯 更新日志
+
+### v2.0 (2025-09-03)
+- ✅ 全新Web界面设计
+- ✅ 简化架构，移除LangGraph依赖
+- ✅ 优化RAG流程和错误处理
+- ✅ 增加文档管理功能
+- ✅ 完善API文档和测试
+
+### v1.0
+- 基础RAG功能
+- 命令行界面
+- 基础API接口

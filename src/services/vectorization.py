@@ -203,7 +203,7 @@ class VectorStoreManager:
         # Get basic info (note: FAISS doesn't expose document count easily)
         return {
             "initialized": True,
-            "embedding_model": settings.llm.embedding_model,
+            "embedding_model": settings.llm.ollama_embedding_model,
             "embedding_dimension": settings.vector.embedding_dimension,
         }
 

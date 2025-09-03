@@ -9,7 +9,6 @@ from pydantic_settings import BaseSettings
 from .llm_config import LLMConfig
 from .vector_config import VectorConfig
 from .api_config import APIConfig
-from .comfyui_config import ComfyUIConfig
 
 
 class LoggingConfig(BaseSettings):
@@ -75,7 +74,6 @@ class Settings:
         self.llm = LLMConfig()
         self.vector = VectorConfig()
         self.api = APIConfig()
-        self.comfyui = ComfyUIConfig()
         self.logging = LoggingConfig()
 
         # Create necessary directories
@@ -96,18 +94,18 @@ class Settings:
     def is_fully_configured(self) -> bool:
         """Check if all required configurations are set."""
         return (
-            self.llm.is_groq_configured or self.llm.is_openai_configured
-        ) and self.llm.is_openai_configured  # Need OpenAI for embeddings
+            self.llm.is_groq_configured and self.llm.is_ollama_configured
+        )  # Need Groq for LLM and Ollama for embeddings
 
     def get_missing_config(self) -> list:
         """Get list of missing required configurations."""
         missing = []
 
-        if not (self.llm.is_groq_configured or self.llm.is_openai_configured):
-            missing.append("LLM API key (GROQ_API_KEY or OPENAI_API_KEY)")
+        if not self.llm.is_groq_configured:
+            missing.append("Groq API key (GROQ_API_KEY)")
 
-        if not self.llm.is_openai_configured:
-            missing.append("OpenAI API key for embeddings (OPENAI_API_KEY)")
+        if not self.llm.is_ollama_configured:
+            missing.append("Ollama configuration (OLLAMA_BASE_URL)")
 
         return missing
 
