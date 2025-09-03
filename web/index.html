@@ -442,12 +442,12 @@
 <body>
     <div class="header">
         <div class="header-content">
-            <div class="logo">🚀 RAG Document QA System v2.0</div>
+            <div class="logo">RAG Document QA System</div>
             <nav class="nav-links">
-                <a href="#" class="nav-link active" onclick="showPage('home')">首页</a>
-                <a href="#" class="nav-link" onclick="showPage('upload')">文档上传</a>
-                <a href="#" class="nav-link" onclick="showPage('chat')">智能问答</a>
-                <a href="#" class="nav-link" onclick="showPage('documents')">文档管理</a>
+                <a href="#" class="nav-link active" onclick="showPage('home', this)">首页</a>
+                <a href="#" class="nav-link" onclick="showPage('upload', this)">文档上传</a>
+                <a href="#" class="nav-link" onclick="showPage('chat', this)">智能问答</a>
+                <a href="#" class="nav-link" onclick="showPage('documents', this)">文档管理</a>
             </nav>
         </div>
     </div>
@@ -545,10 +545,9 @@
 
     <div class="footer">
         <p>Copyright (c) 2025 BalenciCash - All Rights Reserved</p>
-        <p>🛡️ Watermark Protection Active - Signature: BC-RAG-2024</p>
     </div>
 
-    <script src="app.js"></script>
+    <script src="/static/app.js?v=20250903-final"></script>
 </body>
 
 </html>

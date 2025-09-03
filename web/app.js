@@ -46,7 +46,7 @@ class RAGClient {
 
     async checkSystemStatus() {
         try {
-            const response = await fetch(`${this.apiURL}/health`);
+            const response = await fetch(`${this.baseURL}/health`);
             const data = await response.json();
 
             if (response.ok) {
@@ -231,16 +231,18 @@ class RAGClient {
                 method: 'DELETE'
             });
 
+            const data = await response.json();
+
             if (response.ok) {
                 this.showAlert('所有文档已清空', 'success');
                 await this.loadDocuments();
                 this.updateStats();
             } else {
-                throw new Error('清空失败');
+                throw new Error(data.detail || '清空失败');
             }
         } catch (error) {
             console.error('Clear all failed:', error);
-            this.showAlert('清空文档失败', 'error');
+            this.showAlert(`清空文档失败: ${error.message}`, 'error');
         }
     }
 
@@ -267,7 +269,7 @@ class RAGClient {
         sendIcon.innerHTML = '<div class="loading"></div>';
 
         try {
-            const response = await fetch(`${this.apiURL}/query`, {
+            const response = await fetch(`${this.apiURL}/question`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -278,15 +280,51 @@ class RAGClient {
             const data = await response.json();
 
             if (response.ok) {
-                this.addMessage('assistant', data.answer);
-                this.queryCount++;
-                this.updateStats();
+                // 确保有有效的回答
+                if (data && data.answer && typeof data.answer === 'string') {
+                    this.addMessage('assistant', data.answer);
+                    this.queryCount++;
+                    this.updateStats();
+                } else if (data && data.success === true && data.answer) {
+                    this.addMessage('assistant', String(data.answer));
+                    this.queryCount++;
+                    this.updateStats();
+                } else {
+                    console.error('Invalid response format:', data);
+                    throw new Error('服务器返回了无效的响应格式');
+                }
             } else {
-                throw new Error(data.detail || '查询失败');
+                throw new Error(data.detail || data.message || '查询失败');
             }
         } catch (error) {
             console.error('Query failed:', error);
-            this.addMessage('assistant', `抱歉，查询失败：${error.message}`);
+            console.error('Error type:', typeof error);
+            console.error('Error details:', JSON.stringify(error, null, 2));
+
+            // 多种方式处理错误信息
+            let errorMessage = '未知错误';
+
+            if (error.message && typeof error.message === 'string') {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            } else if (error.toString && typeof error.toString === 'function') {
+                const errorStr = error.toString();
+                if (errorStr !== '[object Object]') {
+                    errorMessage = errorStr;
+                }
+            }
+
+            // 如果还是[object Object]，尝试其他方法
+            if (errorMessage === '[object Object]' || errorMessage === '未知错误') {
+                if (error.name || error.code || error.status) {
+                    errorMessage = `错误类型: ${error.name || 'Unknown'}, 状态: ${error.code || error.status || 'N/A'}`;
+                } else {
+                    errorMessage = '网络请求失败，请检查连接或稍后重试';
+                }
+            }
+
+            this.addMessage('assistant', `抱歉，查询失败：${errorMessage}`);
         } finally {
             sendIcon.innerHTML = originalText;
         }
@@ -327,7 +365,7 @@ class RAGClient {
 }
 
 // 页面切换功能
-function showPage(pageId) {
+function showPage(pageId, element) {
     // 隐藏所有页面
     document.querySelectorAll('.page').forEach(page => {
         page.classList.remove('active');
@@ -340,7 +378,17 @@ function showPage(pageId) {
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
     });
-    event.target.classList.add('active');
+
+    // 如果提供了element，则激活它；否则查找对应的导航链接
+    if (element) {
+        element.classList.add('active');
+    } else {
+        // 查找对应的导航链接并激活
+        const navLink = document.querySelector(`.nav-link[onclick*="'${pageId}'"]`);
+        if (navLink) {
+            navLink.classList.add('active');
+        }
+    }
 }
 
 // 键盘事件处理

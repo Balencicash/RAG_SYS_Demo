@@ -316,9 +316,60 @@ async def list_documents() -> dict:
         # Get document count and metadata from vector store
         store_info = vector_store.get_store_info()
 
+        # Get actual document files from uploads directory
+        uploads_dir = Path(__file__).parent.parent.parent / "uploads"
+        document_files = []
+
+        if uploads_dir.exists():
+            for file_path in uploads_dir.glob("*"):
+                if file_path.is_file() and file_path.suffix in [
+                    ".md",
+                    ".txt",
+                    ".pdf",
+                    ".docx",
+                ]:
+                    try:
+                        # Determine document type
+                        doc_type = "text"
+                        if file_path.suffix == ".md":
+                            doc_type = "markdown"
+                        elif file_path.suffix == ".pdf":
+                            doc_type = "pdf"
+                        elif file_path.suffix in [".doc", ".docx"]:
+                            doc_type = "word"
+
+                        # Read file for title (for text/markdown files)
+                        title = file_path.stem
+                        if doc_type in ["markdown", "text"]:
+                            try:
+                                with open(file_path, "r", encoding="utf-8") as f:
+                                    content = f.read()
+                                    lines = content.split("\n")
+                                    if lines and lines[0].startswith("#"):
+                                        title = lines[0].lstrip("#").strip()
+                            except:
+                                pass
+
+                        file_stat = file_path.stat()
+                        document_files.append(
+                            {
+                                "id": file_path.stem,
+                                "filename": file_path.name,
+                                "title": title,
+                                "type": doc_type,
+                                "upload_time": file_stat.st_mtime
+                                * 1000,  # Convert to milliseconds
+                                "size": file_stat.st_size,
+                                "chunks": 0,  # We don't track chunks per document currently
+                            }
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to read document {file_path}: {e}")
+
         return {
             "success": True,
-            "documents": store_info.get("document_count", 0),
+            "documents": document_files,
+            "document_count": len(document_files),
             "total_chunks": store_info.get("total_vectors", 0),
             "store_info": store_info,
             "watermark": watermark.get_metadata(),
@@ -331,15 +382,78 @@ async def list_documents() -> dict:
 async def clear_documents() -> dict:
     """Clear all uploaded documents."""
     try:
+        # Clear vector store
         vector_store.clear()
+
+        # Delete all uploaded files
+        uploads_dir = Path(__file__).parent.parent.parent / "uploads"
+        deleted_count = 0
+
+        if uploads_dir.exists():
+            for file_path in uploads_dir.glob("*"):
+                if file_path.is_file() and file_path.suffix in [
+                    ".md",
+                    ".txt",
+                    ".pdf",
+                    ".docx",
+                ]:
+                    try:
+                        file_path.unlink()
+                        deleted_count += 1
+                        logger.info(f"Deleted file: {file_path}")
+                    except Exception as e:
+                        logger.warning(f"Failed to delete file {file_path}: {e}")
 
         return {
             "success": True,
-            "message": "All documents cleared successfully",
+            "message": f"All documents cleared successfully. Deleted {deleted_count} files.",
             "watermark": watermark.get_metadata(),
         }
     except Exception as e:
-        handle_error_and_raise(e, "clear_documents")
+        logger.error(f"Clear documents failed: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to clear documents: {str(e)}"
+        )
+
+
+@app.delete(f"{settings.api.api_prefix}/documents/" + "{document_id}")
+async def delete_document(document_id: str) -> dict:
+    """Delete a specific document."""
+    try:
+        # Delete the physical file
+        uploads_dir = Path(__file__).parent.parent.parent / "uploads"
+        file_patterns = [
+            f"{document_id}.md",
+            f"{document_id}.txt",
+            f"{document_id}.pdf",
+            f"{document_id}.docx",
+        ]
+
+        deleted = False
+        for pattern in file_patterns:
+            file_path = uploads_dir / pattern
+            if file_path.exists():
+                file_path.unlink()
+                deleted = True
+                logger.info(f"Deleted document file: {file_path}")
+                break
+
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        # Note: For a complete implementation, we would need to rebuild the vector store
+        # without the deleted document's chunks. For now, we'll just delete the file.
+        # The vector store will still contain the document's embeddings until cleared.
+
+        return {
+            "success": True,
+            "message": f"Document {document_id} deleted successfully",
+            "watermark": watermark.get_metadata(),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        handle_error_and_raise(e, "delete_document")
 
 
 if __name__ == "__main__":
