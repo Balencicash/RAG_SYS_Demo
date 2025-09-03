@@ -290,7 +290,7 @@ async def system_info() -> dict:
     return {
         "system": "active",
         "version": "v2.0",
-        "status": "operational", 
+        "status": "operational",
         "build_info": sys_meta.get_metadata()["signature"],
         "copyright": settings.app.app_copyright,
         "info": "RAG Document QA System - Production Ready",

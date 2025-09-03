@@ -62,23 +62,20 @@ class SystemMetadata:
 
     def initialize(self) -> bool:
         """Initialize system metadata handler."""
-        logger.info("System initialized successfully")
-        logger.info(f"Build signature: {self._hash_key}")
+        logger.info("RAG System initialized - Author: BalenciCash")
+        logger.info(f"Project: RAG-SYS-Demo | Signature: {self._hash_key}")
         return True
 
 
-# System metadata instance
-sys_metadata = SystemMetadata()
+# Global instance
+watermark = SystemMetadata()
 
-# Convenient aliases
-protect = sys_metadata.add_metadata
-protect_class = sys_metadata.add_class_metadata
-
-# Legacy compatibility aliases
-watermark = sys_metadata
+# Export decorators (keep same names for compatibility)
+protect = watermark.add_metadata
+protect_class = watermark.add_class_metadata
 
 
-# For backward compatibility
-def initialize_metadata() -> bool:
-    """Initialize system metadata tracking."""
-    return sys_metadata.initialize()
+# Initialize function
+def initialize_watermark() -> bool:
+    """Initialize system metadata handler."""
+    return watermark.initialize()

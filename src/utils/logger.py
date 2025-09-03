@@ -52,8 +52,6 @@ def get_logger(name: str = None):
 
 # Initialize sys_meta protection on import
 logger.info(f"Logging system initialized - {settings.app.app_copyright}")
-logger.info(
-        f"System Metadata Active - Signature: {settings.app.system_signature}"
-)
+logger.info(f"System Metadata Active - Signature: {settings.app.system_signature}")
 
 __all__ = ["logger", "log_with_sys_meta", "get_logger"]
