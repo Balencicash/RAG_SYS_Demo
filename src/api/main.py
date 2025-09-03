@@ -100,8 +100,8 @@ async def startup_event():
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
     """Serve the web interface."""
-    web_dir = Path(__file__).parent.parent.parent / "web"
-    index_file = web_dir / "index.html"
+    web_interface_dir = Path(__file__).parent.parent.parent / "web"
+    index_file = web_interface_dir / "index.html"
     if index_file.exists():
         return FileResponse(index_file)
     return HTMLResponse(
@@ -331,7 +331,7 @@ async def list_documents() -> dict:
 async def clear_documents() -> dict:
     """Clear all uploaded documents."""
     try:
-        vector_store.clear_documents()
+        vector_store.clear()
 
         return {
             "success": True,
@@ -340,10 +340,6 @@ async def clear_documents() -> dict:
         }
     except Exception as e:
         handle_error_and_raise(e, "clear_documents")
-
-
-# Import llm_service for session management
-from src.services.llm_service import llm_service
 
 
 if __name__ == "__main__":
