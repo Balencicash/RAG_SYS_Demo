@@ -17,7 +17,7 @@ from src.services.document_parser import document_parser
 from src.services.vectorization import text_chunker, vector_store
 from src.services.llm_service import llm_service
 from src.agents.rag_agent import rag_agent
-from src.utils.metadata import watermark as sys_meta, initialize_watermark as init_sys
+from src.utils.metadata import watermark as sys_meta, initialize_metadata as init_sys
 from config.settings import settings
 from loguru import logger
 
@@ -73,7 +73,7 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     author: str
-    watermark: Dict[str, Any]
+    metadata: Dict[str, Any]
 
 
 class StatusResponse(BaseModel):

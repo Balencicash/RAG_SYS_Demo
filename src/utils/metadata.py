@@ -67,15 +67,17 @@ class SystemMetadata:
         return True
 
 
-# Global instance
-watermark = SystemMetadata()
+# System metadata instance
+sys_metadata = SystemMetadata()
 
-# Export decorators (keep same names for compatibility)
-protect = watermark.add_metadata
-protect_class = watermark.add_class_metadata
+# Convenient aliases  
+protect = sys_metadata.add_metadata
+protect_class = sys_metadata.add_class_metadata
 
+# Legacy compatibility aliases
+watermark = sys_metadata
 
-# Initialize function
-def initialize_watermark() -> bool:
-    """Initialize system metadata handler."""
-    return watermark.initialize()
+# For backward compatibility
+def initialize_metadata() -> bool:
+    """Initialize system metadata tracking."""
+    return sys_metadata.initialize()
