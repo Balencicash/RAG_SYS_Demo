@@ -1,18 +1,20 @@
-# RAG Document QA System Docker Image
+# RAG Document QA System - Technical Showcase
 # Copyright (c) 2025 BalenciCash - All Rights Reserved
-# Protected by Digital Watermark
+# Learning and Research Purpose Only
 
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Set metadata
-LABEL maintainer="BalenciCash <balencicash@example.com>"
-LABEL description="RAG Document QA System with Watermark Protection"
-LABEL version="1.0.0"
+LABEL maintainer="BalenciCash"
+LABEL description="RAG Document QA System - Technical Showcase"
+LABEL version="2.0.0"
+LABEL license="Custom Technical Showcase License"
 
-# Set watermark environment variables
-ENV AUTHOR="Balenci Cash"
-ENV PROJECT_ID="RAG-SYS-Not_for_commercial_usage"
-ENV WATERMARK_ENABLED=true
+# Set environment for system metadata
+ENV PYTHONPATH=/app
+ENV AUTHOR="BalenciCash"
+ENV PROJECT_VERSION="v2.0.0"
+ENV BUILD_TYPE="production"
 
 # Set working directory
 WORKDIR /app
@@ -24,47 +26,29 @@ RUN apt-get update && apt-get install -y \
     make \
     libffi-dev \
     libssl-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files
+# Copy requirements first for better caching
+COPY requirements.txt .
 COPY pyproject.toml .
-COPY main.py .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
 COPY src/ ./src/
 COPY config/ ./config/
+COPY web/ ./web/
 
 # Create necessary directories
 RUN mkdir -p logs uploads vector_stores
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir \
-    fastapi \
-    uvicorn \
-    langchain \
-    langchain-community \
-    langgraph \
-    langsmith \
-    openai \
-    faiss-cpu \
-    pypdf \
-    python-docx \
-    python-multipart \
-    markdown \
-    loguru \
-    pydantic \
-    pydantic-settings \
-    python-dotenv \
-    tiktoken \
-    numpy \
-    cryptography
-
-# Create watermark verification file
-RUN echo "Protected Software - Copyright (c) 2024 BalenciCash" > /app/WATERMARK.txt && \
-    echo "Project ID: RAG-SYS-Not_for_commercial_usage" >> /app/WATERMARK.txt && \
-    echo "This software is protected by digital watermarking" >> /app/WATERMARK.txt
+# Set proper permissions
+RUN chmod -R 755 /app
 
 # Set environment variables
-ENV PYTHONPATH=/app
 ENV API_HOST=0.0.0.0
 ENV API_PORT=8000
 
@@ -73,7 +57,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
 # Run the application
-CMD ["python", "main.py"]
+CMD ["python", "-m", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

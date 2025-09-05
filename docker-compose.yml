@@ -1,15 +1,15 @@
 version: '3.8'
 
-# RAG Document QA System Docker Compose
-# Copyright (c) 2024 Balenci Cash - All Rights Reserved
+# RAG Document QA System - Technical Showcase
+# Copyright (c) 2025 BalenciCash - All Rights Reserved
 
 services:
   rag-api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: rag-document-qa
-    image: rag-document-qa:latest
+    container_name: rag-document-qa-showcase
+    image: rag-document-qa-showcase:latest
     ports:
       - "8000:8000"
     environment:
@@ -17,81 +17,68 @@ services:
       - API_HOST=0.0.0.0
       - API_PORT=8000
       - LOG_LEVEL=INFO
-      
+
       # LLM Configuration (override with .env)
       - GROQ_API_KEY=${GROQ_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - LLM_PROVIDER=${LLM_PROVIDER:-groq}
       - GROQ_MODEL=${GROQ_MODEL:-llama-3.1-8b-instant}
-      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-3.5-turbo}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-ada-002}
       - MAX_TOKENS=${MAX_TOKENS:-500}
       - TEMPERATURE=${TEMPERATURE:-0.3}
-      
+
+      # Ollama Configuration
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+
       # LangSmith Configuration (optional)
-      - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2:-true}
+      - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2:-false}
       - LANGCHAIN_ENDPOINT=${LANGCHAIN_ENDPOINT:-https://api.smith.langchain.com}
       - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY}
       - LANGCHAIN_PROJECT=${LANGCHAIN_PROJECT:-rag-document-qa}
-      
+
       # Vector Store Settings
       - CHUNK_SIZE=${CHUNK_SIZE:-1000}
       - CHUNK_OVERLAP=${CHUNK_OVERLAP:-200}
       - TOP_K_RESULTS=${TOP_K_RESULTS:-5}
-      
-      # Watermark Settings
-      - ENABLE_WATERMARK=true
-      - WATERMARK_SIGNATURE=BC-RAG-2024
-      - AUTHOR=Balenci Cash
-      
+
+      # System Metadata Settings
+      - ENABLE_SYSTEM_TRACKING=true
+      - BUILD_SIGNATURE=RAG-SYS-2025
+      - AUTHOR=BalenciCash
+
     volumes:
-      # Persist data
+      # Persist application data
       - ./uploads:/app/uploads
       - ./vector_stores:/app/vector_stores
       - ./logs:/app/logs
-      
+
     restart: unless-stopped
-    
+
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    
-    labels:
-      - "com.balencicash.project=rag-document-qa"
-      - "com.balencicash.version=1.0.0"
-      - "com.balencicash.watermark=protected"
-      - "com.balencicash.author=Balenci Cash"
-    
-    networks:
-      - rag-network
 
-  # Optional: Nginx reverse proxy
-  nginx:
-    image: nginx:alpine
-    container_name: rag-nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - rag-api
+    labels:
+      - "com.balencicash.project=rag-document-qa-showcase"
+      - "com.balencicash.version=2.0.0"
+      - "com.balencicash.license=custom-technical-showcase"
+      - "com.balencicash.author=BalenciCash"
+
     networks:
       - rag-network
-    profiles:
-      - production
 
 networks:
   rag-network:
     driver: bridge
-    name: rag-document-qa-network
+    name: rag-showcase-network
 
-volumes:
-  uploads:
-    name: rag-uploads
-  vector_stores:
-    name: rag-vector-stores
-  logs:
-    name: rag-logs
+# Optional production volumes (uncomment if needed)
+# volumes:
+#   uploads:
+#     name: rag-uploads
+#   vector_stores:
+#     name: rag-vector-stores
+#   logs:
+#     name: rag-logs

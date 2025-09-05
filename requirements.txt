@@ -1,5 +1,6 @@
-# RAG Document QA System Requirements
-# Copyright (c) 2024 Balenci Cash
+# RAG Document QA System v2.0 - Dependencies
+# Copyright (c) 2025 BalenciCash - All Rights Reserved
+# Technical Showcase for Learning & Research Purpose
 
 fastapi>=0.104.0
 uvicorn>=0.24.0
@@ -22,7 +23,7 @@ tiktoken>=0.5.2
 numpy>=1.24.0
 cryptography>=41.0.7
 
-# Additional Integrations
+# Ollama & Additional Integrations
 aiohttp>=3.9.0
 websockets>=12.0
 ollama>=0.1.0

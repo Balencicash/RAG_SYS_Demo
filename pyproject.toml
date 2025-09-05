@@ -1,12 +1,24 @@
 [project]
-name = "rag-document-qa"
-version = "1.0.0"
-description = "RAG-based Document Q&A System with Personal Watermark Protection"
+name = "rag-document-qa-showcase"
+version = "2.0.0"
+description = "RAG Document Q&A System - Technical Showcase for Learning & Research"
 authors = [
-    {name = "Balenci Cash", email = "balencicash@example.com"}
+    {name = "BalenciCash"}
 ]
 readme = "README.md"
-requires-python = ">=3.9"
+license = {file = "LICENSE.md"}
+requires-python = ">=3.10"
+keywords = ["rag", "ai", "langchain", "fastapi", "technical-showcase", "learning"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Education",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11", 
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "fastapi>=0.104.0",
     "uvicorn>=0.24.0",
@@ -46,7 +58,17 @@ build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 88
-target-version = ['py39', 'py310', 'py311']
+target-version = ['py310', 'py311', 'py312']
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[project.urls]
+"Homepage" = "https://github.com/Balencicash/RAG_SYS_Demo"
+"Repository" = "https://github.com/Balencicash/RAG_SYS_Demo.git"
+"Documentation" = "https://github.com/Balencicash/RAG_SYS_Demo#readme"
+"Issue Tracker" = "https://github.com/Balencicash/RAG_SYS_Demo/issues"
 
 [tool.ruff]
 line-length = 88
