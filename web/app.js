@@ -64,10 +64,13 @@ class RAGClient {
 
     async loadDocuments() {
         try {
+            console.log('Loading documents from:', `${this.apiURL}/documents`);
             const response = await fetch(`${this.apiURL}/documents`);
             if (response.ok) {
                 const data = await response.json();
+                console.log('Documents API response:', data);
                 this.documents = data.documents || [];
+                console.log('Loaded documents count:', this.documents.length);
                 this.renderDocuments();
             }
         } catch (error) {
@@ -227,11 +230,14 @@ class RAGClient {
         }
 
         try {
+            console.log('Starting clear documents request...');
             const response = await fetch(`${this.apiURL}/documents/clear`, {
                 method: 'DELETE'
             });
 
+            console.log('Clear response status:', response.status);
             const data = await response.json();
+            console.log('Clear response data:', data);
 
             if (response.ok) {
                 this.showAlert('所有文档已清空', 'success');
@@ -255,9 +261,13 @@ class RAGClient {
         }
 
         if (this.documents.length === 0) {
+            console.log('No documents loaded, documents.length:', this.documents.length);
+            console.log('Documents array:', this.documents);
             this.showAlert('请先上传文档再进行问答', 'error');
             return;
         }
+
+        console.log('Sending message with documents count:', this.documents.length);
 
         // 添加用户消息
         this.addMessage('user', message);
@@ -278,6 +288,7 @@ class RAGClient {
             });
 
             const data = await response.json();
+            console.log('API Response data:', JSON.stringify(data, null, 2));
 
             if (response.ok) {
                 // 确保有有效的回答

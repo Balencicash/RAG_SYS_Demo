@@ -71,21 +71,6 @@ class ConfigurationError(RAGException):
         self.config_key = config_key
 
 
-class ComfyUIError(RAGException):
-    """Exception raised during ComfyUI operations."""
-
-    def __init__(
-        self,
-        message: str,
-        prompt_id: str = "",
-        operation: str = "",
-        details: Optional[Dict[str, Any]] = None,
-    ):
-        super().__init__(message, "COMFYUI_ERROR", details)
-        self.prompt_id = prompt_id
-        self.operation = operation
-
-
 class ErrorHandler:
     """Centralized error handler for the RAG system."""
 
