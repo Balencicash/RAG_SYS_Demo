@@ -36,11 +36,14 @@
 
 ```bash
 # 克隆项目
-git clone <repository-url>
-cd rag-document-qa-system
+git clone https://github.com/Balencicash/RAG_SYS_Demo.git
+cd RAG_SYS_Demo
 
-# 安装Python依赖
-pip install -r requirements.txt
+# 安装uv（Python包管理器）
+pip install uv
+
+# 安装项目依赖
+uv sync
 
 # 启动Ollama（用于嵌入模型）
 ollama serve
@@ -64,9 +67,12 @@ LANGCHAIN_TRACING_V2=true
 ### 3. 启动系统
 
 ```bash
-# 启动服务器
+# 方式1：使用启动脚本
 chmod +x start_server.sh
 ./start_server.sh
+
+# 方式2：直接使用uv运行
+uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 ```
 
 ### 4. 访问系统
@@ -99,6 +105,41 @@ curl -X POST "http://localhost:8000/api/v1/query" \
 
 # 查看文档列表
 curl -X GET "http://localhost:8000/api/v1/documents"
+```
+
+## 🛠️ 开发指南
+
+### 使用uv进行开发
+
+```bash
+# 安装开发依赖
+uv sync --dev
+
+# 添加新依赖
+uv add package-name
+
+# 添加开发依赖
+uv add --dev package-name
+
+# 运行代码格式化
+uv run black src/
+uv run ruff check src/
+
+# 运行类型检查
+uv run mypy src/
+
+# 运行测试
+uv run pytest
+```
+
+### Docker开发
+
+```bash
+# 构建镜像
+docker build -t rag-showcase .
+
+# 运行容器
+docker-compose up -d
 ```
 
 ## 📚 API文档

@@ -9,14 +9,17 @@ echo "="
 # 进入项目目录
 cd "$(dirname "$0")"
 
-# 检查Python环境
-if [ ! -d ".venv" ]; then
-    echo "❌ 虚拟环境不存在，请运行: python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
+# 检查uv环境
+if ! command -v uv &> /dev/null; then
+    echo "❌ uv未安装，请运行: pip install uv"
     exit 1
 fi
 
-# 激活虚拟环境
-source .venv/bin/activate
+# 检查虚拟环境
+if [ ! -f "uv.lock" ]; then
+    echo "❌ uv.lock不存在，请运行: uv sync"
+    exit 1
+fi
 
 # 检查Ollama服务
 echo "🔍 检查Ollama服务状态..."
@@ -39,12 +42,12 @@ fi
 echo "🌐 启动FastAPI服务器..."
 echo "📍 服务地址: http://localhost:8000"
 echo "📖 API文档: http://localhost:8000/docs"
-echo "🧪 测试页面: file://$(pwd)/test_ui.html"
+echo "🧪 测试页面: file://$(pwd)/web/index.html"
 echo ""
 echo "按 Ctrl+C 停止服务"
 echo "=" 
 
-python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 
 # 清理
 if [ ! -z "$OLLAMA_PID" ]; then
