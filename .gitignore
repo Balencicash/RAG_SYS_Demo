@@ -4,9 +4,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
 build/
 develop-eggs/
 dist/
@@ -22,32 +19,84 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# IDE
+# Virtual Environments
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE & Editors
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
+Thumbs.db
 
-# Project specific
-.env
-uploads/
-vector_stores/
-logs/
+# Project Runtime Data
+uploads/*
+!uploads/.gitkeep
+vector_stores/*
+!vector_stores/.gitkeep
+logs/*
+!logs/.gitkeep
 *.log
+*.log.*
 
-# Testing
+# Development & Testing
 .pytest_cache/
 .coverage
 htmlcov/
 .tox/
 .hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
 # Docker
 docker-compose.override.yml
+.dockerignore
 
-# Watermark protection files (keep these)
-!WATERMARK.txt
-!src/utils/watermark.py
+# System Files
+*.tmp
+*.temp
+*.cache
+
+# Backup Files
+*.bak
+*.backup
+*~
+
+# MacOS
+.AppleDouble
+.LSOverride
+
+# Windows
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+
+# Linux
+*~
+
+# JetBrains
+.idea/
+
+# VS Code
+.vscode/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Distribution / packaging
+*.tar.gz
+*.zip
+
+# Keep important empty directories
+!.gitkeep
