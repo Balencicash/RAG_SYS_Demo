@@ -83,6 +83,24 @@ uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 - **API文档**：http://localhost:8000/docs
 - **健康检查**：http://localhost:8000/health
 
+### 5. 停止服务
+
+```bash
+# 方式1：使用停止脚本（推荐）
+chmod +x stop_server.sh
+./stop_server.sh
+
+# 方式2：前台运行时按Ctrl+C
+Ctrl + C
+
+# 方式3：查找并终止进程
+ps aux | grep uvicorn | grep -v grep
+kill -TERM <进程ID>
+
+# 方式4：强制终止所有uvicorn进程
+pkill -f uvicorn
+```
+
 ## 💻 使用方法
 
 ### Web界面使用
