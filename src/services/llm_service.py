@@ -3,6 +3,7 @@ Clean LLM Service - Groq Only.
 Simplified LLM operations with Groq support and proper error handling.
 """
 
+import os
 from typing import List, Dict, Any, Optional
 import hashlib
 from datetime import datetime
@@ -10,6 +11,7 @@ from datetime import datetime
 from langchain_groq import ChatGroq
 from langchain.schema import Document, HumanMessage, SystemMessage, AIMessage
 from langchain.callbacks import LangChainTracer
+from langchain.callbacks.tracers import LangChainTracer as LangSmithTracer
 
 from src.core.exceptions import LLMServiceError, ConfigurationError
 from src.utils.metadata import protect_class
@@ -92,15 +94,27 @@ class LLMService:
                 model=llm_config.groq_model,
             ) from e
 
-    def _initialize_tracer(self) -> Optional[LangChainTracer]:
+    def _initialize_tracer(self) -> Optional[LangSmithTracer]:
         """Initialize LangSmith tracer if configured."""
         llm_config = settings.llm
 
         if llm_config.langchain_tracing_v2 and llm_config.langchain_api_key:
             try:
-                return LangChainTracer(project_name=llm_config.langchain_project)
-            except Exception:
-                # If tracer fails, continue without it
+                # Set environment variables for LangSmith
+                os.environ["LANGCHAIN_TRACING_V2"] = "true"
+                os.environ["LANGCHAIN_ENDPOINT"] = llm_config.langchain_endpoint
+                os.environ["LANGCHAIN_API_KEY"] = llm_config.langchain_api_key
+                os.environ["LANGCHAIN_PROJECT"] = llm_config.langchain_project
+
+                # Initialize tracer with project name
+                tracer = LangSmithTracer(
+                    project_name=llm_config.langchain_project,
+                    tags=["rag-system", "groq", "production"],
+                )
+                return tracer
+            except Exception as e:
+                # Log warning but continue without tracer
+                print(f"Warning: Failed to initialize LangSmith tracer: {e}")
                 return None
         return None
 

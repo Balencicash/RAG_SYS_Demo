@@ -18,6 +18,7 @@ from src.services.vectorization import text_chunker, vector_store
 from src.services.llm_service import llm_service
 from src.agents.rag_agent import rag_agent
 from src.utils.metadata import watermark as sys_meta, initialize_metadata as init_sys
+from src.utils.langsmith_config import setup_langsmith_environment, get_langsmith_status
 from config.settings import settings
 from loguru import logger
 
@@ -88,6 +89,15 @@ async def startup_event():
     """Initialize services on startup."""
     logger.info(f"Starting {settings.app.app_name} v{settings.app.app_version}")
     logger.info(f"{settings.app.app_copyright}")
+
+    # Initialize LangSmith tracing
+    langsmith_configured = setup_langsmith_environment()
+    if langsmith_configured:
+        logger.info("LangSmith tracing initialized successfully")
+        ls_status = get_langsmith_status()
+        logger.info(f"LangSmith project: {ls_status['project']}")
+    else:
+        logger.info("LangSmith tracing disabled - no API key configured")
 
     # Check configuration
     if not settings.is_fully_configured:
@@ -296,6 +306,22 @@ async def system_info() -> dict:
         "info": "RAG Document QA System - Production Ready",
         "metadata": sys_meta.get_metadata(),
     }
+
+
+# LangSmith status endpoint
+@app.get(f"{settings.api.api_prefix}/system/langsmith")
+async def langsmith_status() -> dict:
+    """Get LangSmith tracing configuration and status."""
+    try:
+        status = get_langsmith_status()
+        return {
+            "success": True,
+            "langsmith_status": status,
+            "message": "LangSmith configuration retrieved successfully",
+            "metadata": sys_meta.get_metadata(),
+        }
+    except Exception as e:
+        handle_error_and_raise(e, "langsmith_status")
 
 
 # Additional API endpoints for web interface compatibility

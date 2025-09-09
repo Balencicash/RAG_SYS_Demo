@@ -18,7 +18,8 @@
 - 🚀 **现代化Web界面**：响应式设计，类ChatGPT用户体验
 - 📄 **智能文档处理**：支持多种文档格式的自动解析和向量化
 - 🤖 **先进RAG技术**：结合检索增强生成，提供准确的上下文相关答案
-- 🔒 **本地化部署**：数据安全，支持完全本地运行
+- � **LangSmith工作流追踪**：完整的RAG流程监控和性能分析 ⭐ **新功能**
+- �🔒 **本地化部署**：数据安全，支持完全本地运行
 - ⚡ **高性能API**：基于FastAPI的现代RESTful接口
 - 🎨 **直观UI设计**：深色主题，现代化交互体验
 
@@ -28,6 +29,7 @@
 - **前端**：HTML5 + CSS3 + JavaScript (原生)
 - **AI模型**：Groq (llama-3.1-8b-instant) + Ollama (nomic-embed-text)
 - **向量数据库**：FAISS
+- **追踪监控**：LangSmith (可选)
 - **文档处理**：LangChain Document Loaders
 
 ## 🚀 快速开始
@@ -183,6 +185,27 @@ RAG-Document-QA-System-v2.0/
 - **Groq API**：用于文本生成
 - **Ollama**：用于文档嵌入
 - **模型参数**：温度、最大令牌等
+
+### LangSmith 追踪配置 ⭐ **新功能**
+项目集成了完整的 LangSmith 工作流追踪功能：
+
+**环境变量设置：**
+```bash
+LANGCHAIN_API_KEY=your_langsmith_api_key_here  # 必需
+LANGCHAIN_PROJECT=rag-document-qa              # 项目名称
+LANGCHAIN_TRACING_V2=true                      # 启用追踪
+LANGCHAIN_ENDPOINT=https://api.smith.langchain.com  # 可选，默认端点
+```
+
+**功能特性：**
+- 🔍 **RAG工作流追踪**：完整记录文档检索→答案生成流程
+- 📊 **性能监控**：查询响应时间、检索准确性统计
+- 🏷️ **智能标签**：自动标记工作流类型和系统组件
+- 🎯 **错误追踪**：详细记录异常和失败原因
+- 📈 **对话追踪**：会话级别的多轮对话历史
+
+**监控端点：**
+- `GET /api/v1/system/langsmith` - 查看追踪配置状态
 
 ### 向量存储配置 (config/vector_config.py)
 - **FAISS**：本地向量数据库
