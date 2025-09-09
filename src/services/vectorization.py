@@ -12,7 +12,7 @@ from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 
-from src.core.exceptions import VectorStoreError, ConfigurationError
+from src.core.exceptions import VectorStoreError
 from src.utils.metadata import protect_class
 from config.settings import settings
 
